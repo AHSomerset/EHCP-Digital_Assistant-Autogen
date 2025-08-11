@@ -36,6 +36,8 @@ Minor: [Number of minor issues found]
 *   **(CRITICAL)** The file being validated MUST NOT be empty or contain only headers.
 *   **(CRITICAL)** It is a **CRITICAL** error if the file being validated has less than 50 characters of actual content beyond the headers.
 
+*   **`output_s3.md` must be structured exactly as per the structure template. Any deviation from this template is a CRITICAL error**
+
 ### Content Validation rules
 
 #### Anti-Hallucination and Source Verification

@@ -56,27 +56,5 @@ This should capture the child or young person’s ambitions for their own lives.
 
 ---
 
-### Output Structure
-[CRITICAL] The output must be structured exactly as follows:
-
-## Summary of the Child or Young Person’s History
-**History**
-[A brief overview of the child or young person’s circumstances.]
-
-[A summary of how to communicate with the child or young person, and how best to engage them in decision making.]
-
-## Summary of the Views, Interests and Aspirations of the Child and Their Parent, or of the Young Person
-
-**Views**
-[Views content]
-**Interests**
-[Interest content]
-**Strengths**
-[Strengths content]
-**Aspirations**
-[Aspirations content]
-
----
-
 ### Output style guide
 All content must be written in accessible languge, using plain english. When capturing the views of the child or their family the content should use a similar writing to style to that use in Appendix A. When describing the difficulties or challenges faced by the it is important to avoid blunt statements - decriptions must be factual, but written in a way which is sympathetic to the child.

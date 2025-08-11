@@ -27,6 +27,7 @@ MAX_SECTION_ITERATIONS = 10  # Max loops for a single section before failure
 # --------------------------------------------------------------------------
 # Define the paths to your reusable instruction components.
 _PARTIALS_DIR = os.path.join(INSTRUCTIONS_DIR, "partials")
+_STRUCTURE_DIR = os.path.join(INSTRUCTIONS_DIR, "structure")
 
 # Reusable components for WRITER agents
 WRITER_COMMON_RULES = os.path.join(_PARTIALS_DIR, "_writer_common_rules.md")
@@ -58,13 +59,15 @@ def get_path_config(section_number: str) -> dict:
     """
     section_str = str(section_number)
     
-    # Define the unique guidance file for this specific section
+    # Define the unique guidance files for this specific section
     writer_guidance_s = os.path.join(INSTRUCTIONS_DIR, f"writer_guidance_s{section_str}.md")
     validation_guidance_s = os.path.join(INSTRUCTIONS_DIR, f"validation_guidance_s{section_str}.md")
+    structure_guide_s = os.path.join(_STRUCTURE_DIR, f"s{section_str}_structure.md")
 
     # Define common validation guidance for sections needing detailed checks
     validation_common_detailed = [
         validation_guidance_s,
+        structure_guide_s,
         VALIDATOR_COMMON_FEEDBACK_FORMAT,
         PROVISION_SPECIFICITY_RULES,
         SMART_OUTCOMES_RULES,
@@ -73,16 +76,16 @@ def get_path_config(section_number: str) -> dict:
 
     path_map = {
         "1": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_FEEDBACK_FORMAT],
+            "writer_guidance": [writer_guidance_s, structure_guide_s, WRITER_COMMON_RULES],
+            "validation_guidance": [validation_guidance_s, structure_guide_s, VALIDATOR_COMMON_FEEDBACK_FORMAT],
         },
         "2": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_FEEDBACK_FORMAT],
+            "writer_guidance": [writer_guidance_s, structure_guide_s, WRITER_COMMON_RULES],
+            "validation_guidance": [validation_guidance_s, structure_guide_s, VALIDATOR_COMMON_FEEDBACK_FORMAT],
         },
         "3": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, NEEDS_PROVISION_OUTCOMES_RULES],
-            "validation_guidance": validation_common_detailed,
+            "writer_guidance": [writer_guidance_s, structure_guide_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, NEEDS_PROVISION_OUTCOMES_RULES],
+            "validation_guidance": validation_common_detailed 
         },
     }
 
