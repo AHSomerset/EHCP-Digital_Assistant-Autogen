@@ -6,7 +6,8 @@ from typing import List, Dict, Any
 import config
 import asyncio
 import io
-from azure.storage.blob import BlobServiceClient
+#from azure.storage.blob import BlobServiceClient
+from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
 from docxtpl import DocxTemplate
 
@@ -18,120 +19,150 @@ from docxtpl import DocxTemplate
 
 _blob_service_client = None
 
-def _get_blob_service_client():
+async def _get_blob_service_client():
+    """
+    Gets the singleton async instance of the BlobServiceClient.
+    If it doesn't exist, it creates one.
+    """
     global _blob_service_client
     if _blob_service_client is None:
-        logging.info("Initializing singleton BlobServiceClient...")
+        logging.info("Initializing singleton async BlobServiceClient...")
         if not all([config.AZURE_STORAGE_ACCOUNT_URL, config.AZURE_STORAGE_ACCOUNT_KEY]):
             raise ValueError("Storage account URL or Key is not set in the environment.")
-        _blob_service_client = BlobServiceClient(
-            account_url=config.AZURE_STORAGE_ACCOUNT_URL, credential=config.AZURE_STORAGE_ACCOUNT_KEY
+        
+        # Create an async client.
+        client = BlobServiceClient(
+            account_url=config.AZURE_STORAGE_ACCOUNT_URL,
+            credential=config.AZURE_STORAGE_ACCOUNT_KEY
         )
-        logging.info("BlobServiceClient initialized successfully.")
+        _blob_service_client = client
+        logging.info("Async BlobServiceClient initialized successfully.")
     return _blob_service_client
+
+async def get_blob_container_client(container_name: str):
+    """Helper to connect to a specific Azure Blob Storage container using the async singleton client."""
+    blob_service_client = await _get_blob_service_client()
+    return blob_service_client.get_container_client(container_name)
 
 async def list_blobs_async(container_name: str) -> List[str]:
     """Asynchronously lists the names of all blobs in a container."""
-    loop = asyncio.get_running_loop()
-    def _list_blobs_sync():
-        logging.info(f"Listing blobs in container: {container_name}")
-        try:
-            container_client = _get_blob_service_client().get_container_client(container_name)
-            return [blob.name for blob in container_client.list_blobs()]
-        except Exception as e:
-            logging.error(f"Failed to list blobs in container '{container_name}'. Reason: {e}")
-            return []
-    return await loop.run_in_executor(None, _list_blobs_sync)
+    logging.info(f"Listing blobs in container: {container_name}")
+    try:
+        container_client = await get_blob_container_client(container_name)
+        return [blob.name async for blob in container_client.list_blobs()]
+    except Exception as e:
+        logging.error(f"Failed to list blobs in container '{container_name}'. Reason: {e}")
+        return []
 
-async def upload_blob_async(container_name: str, blob_name: str, data: str | bytes, overwrite: bool = True) -> None:
+async def upload_blob_async(container_name: str, blob_name: str, data: str | bytes, overwrite: bool = True):
     """Asynchronously uploads string or byte data to a blob."""
-    loop = asyncio.get_running_loop()
-    def _upload_blob_sync():
-        logging.info(f"Uploading to blob: {container_name}/{blob_name}")
-        try:
-            container_client = _get_blob_service_client().get_container_client(container_name)
-            container_client.upload_blob(name=blob_name, data=data, overwrite=overwrite)
-        except Exception as e:
-            logging.error(f"Failed to upload blob '{blob_name}'. Reason: {e}")
-            raise
-    await loop.run_in_executor(None, _upload_blob_sync)
+    logging.info(f"Uploading to blob: {container_name}/{blob_name}")
+    try:
+        container_client = await get_blob_container_client(container_name)
+        await container_client.upload_blob(name=blob_name, data=data, overwrite=overwrite)
+    except Exception as e:
+        logging.error(f"Failed to upload blob '{blob_name}'. Reason: {e}")
+        raise
 
 async def download_blob_as_text_async(container_name: str, blob_name: str) -> str:
     """Asynchronously downloads a blob and returns its content as a UTF-8 string."""
-    loop = asyncio.get_running_loop()
-    def _download_sync():
-        logging.info(f"Downloading text blob: {container_name}/{blob_name}")
-        try:
-            container_client = _get_blob_service_client().get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob_name)
-            return blob_client.download_blob().readall().decode("utf-8")
-        except ResourceNotFoundError: # Be specific about the most common error
-            error_message = f"ERROR: Blob '{blob_name}' was not found in container '{container_name}'."
-            logging.error(error_message)
-            return error_message
-        except Exception as e:
-            error_message = f"ERROR: Failed to download blob '{blob_name}' as text. Reason: {e}"
-            logging.error(error_message)
-            return error_message
-    return await loop.run_in_executor(None, _download_sync)
+    logging.info(f"Downloading text blob: {container_name}/{blob_name}")
+    try:
+        container_client = await get_blob_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        downloader = await blob_client.download_blob()
+        return (await downloader.readall()).decode("utf-8")
+    except Exception as e:
+        logging.error(f"Failed to download blob '{blob_name}' as text. Reason: {e}")
+        return ""
 
 async def download_blob_as_bytes_async(container_name: str, blob_name: str) -> bytes:
     """Asynchronously downloads a blob and returns its content as raw bytes."""
-    loop = asyncio.get_running_loop()
-    def _download_sync():
-        logging.info(f"Downloading bytes blob: {container_name}/{blob_name}")
-        try:
-            container_client = _get_blob_service_client().get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob_name)
-            return blob_client.download_blob().readall()
-        except Exception as e:
-            logging.error(f"Failed to download blob '{blob_name}' as bytes. Reason: {e}")
-            return b""
-    return await loop.run_in_executor(None, _download_sync)
+    logging.info(f"Downloading bytes blob: {container_name}/{blob_name}")
+    try:
+        container_client = await get_blob_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        downloader = await blob_client.download_blob()
+        return await downloader.readall()
+    except Exception as e:
+        logging.error(f"Failed to download blob '{blob_name}' as bytes. Reason: {e}")
+        return b""
 
 async def download_all_sources_from_container_async(container_name: str) -> str:
     """
-    Asynchronously lists all blobs in a container, downloads their text content,
-    and returns it as a single concatenated string. This is the primary tool
-    for providing source context to agents.
+    Asynchronously and CONCURRENTLY lists all blobs in a container, downloads
+    their text content, and returns it as a single concatenated string.
+    This is the primary tool for providing source context to agents.
     """
-    logging.info(f"--- Downloading all source documents from container: {container_name} ---")
+    logging.info(f"--- Concurrently downloading all source documents from container: {container_name} ---")
+    
+    # Step 1: Get the list of all blob names to be downloaded.
     blob_names = await list_blobs_async(container_name)
+    
     if not blob_names:
         logging.warning(f"No blobs found in container '{container_name}'.")
         return "ERROR: No source documents found in the specified container."
 
-    full_content = ""
-    for blob_name in blob_names:
-        filename = os.path.basename(blob_name)
-        logging.info(f"Reading source file: {blob_name}")
-        full_content += f"--- START OF FILE {filename} ---\n\n"
-        full_content += await download_blob_as_text_async(container_name, blob_name)
-        full_content += f"\n\n--- END OF FILE {filename} ---\n\n"
-    
-    logging.info(f"--- Finished downloading all source documents from {container_name} ---")
-    return full_content
+    # Step 2: Create a list of download tasks without awaiting them yet.
+    download_tasks = [download_blob_as_text_async(container_name, blob_name) for blob_name in blob_names]
 
-async def clear_blob_container_async(container_name: str) -> None:
-    """Asynchronously deletes all blobs within a specified Azure Blob Storage container."""
+    # Step 3: Execute all the download tasks concurrently using asyncio.gather.
+    contents = await asyncio.gather(*download_tasks)
+    
+    logging.info(f"--- Finished downloading {len(blob_names)} source documents. Formatting content. ---")
+
+    # Step 4: Now that all content is downloaded, format it into a single string.
+    full_content_parts = []
+    for i, content in enumerate(contents):
+        blob_name = blob_names[i]
+        filename = os.path.basename(blob_name)
+        full_content_parts.append(f"--- START OF FILE {filename} ---\n\n{content}\n\n--- END OF FILE {filename} ---\n\n")
+    
+    return "".join(full_content_parts)
+
+async def clear_blob_container_async(container_name: str):
+    """
+    Asynchronously and concurrently deletes all blobs within a specified container.
+    """
     logging.info(f"--- Starting cleanup of blob container: {container_name} ---")
     try:
-        blobs_to_delete = await list_blobs_async(container_name)
-        if not blobs_to_delete:
-            logging.info(f"Container '{container_name}' is already empty.")
+        container_client = await get_blob_container_client(container_name)
+        blob_names = [blob.name async for blob in container_client.list_blobs()]
+
+        if not blob_names:
+            logging.info(f"Container '{container_name}' is already empty. No cleanup needed.")
             return
 
-        logging.info(f"Found {len(blobs_to_delete)} blobs to delete in container '{container_name}'.")
+        logging.info(f"Found {len(blob_names)} blobs to delete in container '{container_name}'.")
         
-        # This can be slow if there are many blobs. For this project, it's fine.
-        for blob_name in blobs_to_delete:
-            logging.info(f"Deleting blob: {blob_name}")
-            container_client = _get_blob_service_client().get_container_client(container_name)
-            container_client.delete_blob(blob_name)
+        # Create a list of deletion tasks (coroutines)
+        delete_tasks = [container_client.delete_blob(blob_name) for blob_name in blob_names]
+        
+        # Execute all deletion tasks concurrently
+        await asyncio.gather(*delete_tasks)
             
         logging.info(f"--- Cleanup of container '{container_name}' complete. ---")
     except Exception as e:
         logging.error(f"Failed to clear container '{container_name}'. Reason: {e}", exc_info=True)
+
+async def copy_blob_async(
+    source_container_name: str,
+    source_blob_name: str,
+    dest_container_name: str,
+    dest_blob_name: str
+):
+    """Asynchronously copies a blob from a source to a destination."""
+    logging.info(f"Archiving blob from '{source_container_name}/{source_blob_name}' to '{dest_container_name}/{dest_blob_name}'")
+    try:
+        source_blob_url = f"{config.AZURE_STORAGE_ACCOUNT_URL}/{source_container_name}/{source_blob_name}"
+        
+        dest_container_client = await get_blob_container_client(dest_container_name)
+        dest_blob_client = dest_container_client.get_blob_client(dest_blob_name)
+        
+        # Use the native async method
+        await dest_blob_client.start_copy_from_url(source_blob_url)
+    except Exception as e:
+        logging.error(f"Failed to copy blob '{source_blob_name}'. Reason: {e}", exc_info=True)
 
 
 # ==============================================================================

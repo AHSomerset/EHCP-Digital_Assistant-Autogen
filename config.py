@@ -9,7 +9,7 @@ load_dotenv()
 # These paths point to files bundled with the application (e.g., instructions)
 # or temporary local files (e.g., logs, temp outputs).
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")  # For temporary files like the final .docx
+OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")  
 INSTRUCTIONS_DIR = os.path.join(BASE_DIR, "instructions")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
 
@@ -25,7 +25,8 @@ AZURE_STORAGE_ACCOUNT_URL = f"https://{AZURE_STORAGE_ACCOUNT_NAME}.blob.core.win
 SOURCE_BLOB_CONTAINER = "source-docs"
 PROCESSED_BLOB_CONTAINER = "processed-docs"
 OUTPUT_BLOB_CONTAINER = "outputs"
-LOG_BLOB_CONTAINER = "logs"
+FINAL_DOCUMENT_CONTAINER = "final-document"
+ARCHIVE_BLOB_CONTAINER = "run-archive"
 
 # --- Application-Level Settings ---
 TOTAL_SECTIONS = 3

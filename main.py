@@ -4,6 +4,7 @@ import logging
 import time
 import asyncio
 import litellm
+import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -18,7 +19,9 @@ from utils import (
     parse_markdown_to_dict,
     generate_word_document,
     download_blob_as_text_async,
-    upload_blob_async
+    upload_blob_async,
+    copy_blob_async,
+    list_blobs_async
 )
 
 # Load environment variables
@@ -80,13 +83,57 @@ async def _upload_log_files_async(container_name: str, full_log_path: str, loop_
     except Exception as e:
         logging.error(f"Failed to upload log files to blob storage. Reason: {e}", exc_info=True)
 
+async def archive_run_artifacts(run_id: str, run_timestamp: str):
+    """
+    Copies all important files from a run into a dedicated folder
+    in the run-archive container for auditing purposes.
+    """
+    logging.info(f"--- Archiving artifacts for Run ID: {run_id} ---")
+    archive_container = config.ARCHIVE_BLOB_CONTAINER
+    
+    try:
+        # 1. Archive Source Documents
+        source_container = config.SOURCE_BLOB_CONTAINER
+        source_blobs = await list_blobs_async(source_container)
+        for blob_name in source_blobs:
+            dest_blob_name = f"{run_id}/source_docs/{blob_name}"
+            await copy_blob_async(source_container, blob_name, archive_container, dest_blob_name)
+
+        # 2. Archive Final Outputs
+        final_docs_container = config.FINAL_DOCUMENT_CONTAINER
+        final_blobs = await list_blobs_async(final_docs_container)
+        for blob_name in final_blobs:
+            dest_blob_name = f"{run_id}/outputs/{blob_name}"
+            await copy_blob_async(final_docs_container, blob_name, archive_container, dest_blob_name)
+
+        # 2. Archive All Outputs
+        output_container = config.OUTPUT_BLOB_CONTAINER
+        output_blobs = await list_blobs_async(output_container)
+        for blob_name in output_blobs:
+            dest_blob_name = f"{run_id}/outputs/{blob_name}"
+            await copy_blob_async(output_container, blob_name, archive_container, dest_blob_name)
+
+        # 3. Archive Log Files
+        log_files = [f for f in os.listdir(config.LOGS_DIR) if run_timestamp in f]
+        for log_file in log_files:
+            log_file_path = os.path.join(config.LOGS_DIR, log_file)
+            dest_blob_name = f"{run_id}/logs/{log_file}"
+            with open(log_file_path, "rb") as log_data:
+                await upload_blob_async(archive_container, dest_blob_name, log_data.read())
+        
+        logging.info(f"--- Archiving for Run ID {run_id} complete. ---")
+
+    except Exception as e:
+        logging.error(f"A critical error occurred during artifact archiving for Run ID {run_id}. Reason: {e}", exc_info=True)
+
 async def main_async():
     """Main async function that contains the entire application lifecycle."""
     start_time = time.monotonic()
     run_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    #setup_logging(run_timestamp)
+    short_uuid = str(uuid.uuid4())[:4]
+    run_id = f"{run_timestamp}_{short_uuid}"
 
-    full_log_path, loop_log_path = setup_logging(run_timestamp)
+    setup_logging(run_timestamp)
 
     litellm.caching = False
 
@@ -146,7 +193,7 @@ async def main_async():
                     output_blob_name = "draft_EHCP.docx"
                     logging.info(f"Uploading final Word document to blob: {output_blob_name}")
                     with open(temp_output_doc_path, "rb") as docx_file:
-                        await upload_blob_async(config.OUTPUT_BLOB_CONTAINER, output_blob_name, docx_file.read())
+                        await upload_blob_async(config.FINAL_DOCUMENT_CONTAINER, output_blob_name, docx_file.read())
                     
                     logging.info(f"✅ Final Word document successfully generated and uploaded.")
                 
@@ -170,12 +217,15 @@ async def main_async():
         loop_logger.info("=" * 40)
 
     finally:
+        print("\n--- Archiving run artifacts. ---")
+        await archive_run_artifacts(run_id, run_timestamp)
+
         print("\n--- Running final cleanup process. ---")
-
-        # UPLOAD LOGS FIRST - This is critical so we have logs even if cleanup fails.
-        await _upload_log_files_async(config.LOG_BLOB_CONTAINER, full_log_path, loop_log_path)
-
         await clear_blob_container_async(config.PROCESSED_BLOB_CONTAINER)
+        await clear_blob_container_async(config.OUTPUT_BLOB_CONTAINER)
+        
+        print("\n--- Clearing source documents for next run. ---")
+        #await clear_blob_container_async(config.SOURCE_BLOB_CONTAINER)
 
 if __name__ == "__main__":
     try:
