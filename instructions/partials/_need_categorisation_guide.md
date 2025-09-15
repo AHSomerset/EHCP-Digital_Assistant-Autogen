@@ -29,22 +29,22 @@ If, and only if, a need is described in a source document without a clear catego
 Evaluate the need against all six categories and choose the one where the **primary focus** of the need lies. Use the document source as a **strong indicator** to help you decide.
 
 *   **Communication & Interaction:**
-    *   **Focus:** Speech, language, understanding social rules, interacting with others.
+    *   **Focus:** Speech, language, understanding social rules, interacting with others. Speech sound difficulties, language delay, language disorder, difficulties with receptive language (understanding), difficulties with expressive language and communicating needs, pre-verbal, non-verbal, below average verbal ability. Difficulties with social thinking, social interaction and social communication, challenges understanding others perspectives and intentions, misinterpreting facial expressions, difficulties understanding sarcasm, ambiguity in communication, tendency towards inflexible thinking, rigidity and difficulties in change of routine, unusual intensity in interests, preference for playing alone, struggling in groups socially. 
     *   ***Strong Indicator:*** Often found in Speech and Language Therapy reports or under this heading in an Educational Psychologist (EP) report.
     *   *Example: "Difficulty making friends."*
 
 *   **Cognition & Learning:**
-    *   **Focus:** Academic skills, memory, attention, processing information, learning pace.
+    *   **Focus:** Academic skills, memory, attention, processing information, learning pace. Reading, spelling, writing, maths, cognitive development, processing speed, non-verbal reasoning, spatial reasoning, achievement compared to age-related expectations, progress over time on academic skills. Executive functioning needs such as working memory, ability to start / initiate a task, persist, monitor performance and be independent. For younger children, global developmental delay. 
     *   ***Strong Indicator:*** Often the primary focus of an EP report.
     *   *Example: "Needs instructions to be broken down into small, single steps."*
 
 *   **Social, Emotional & Mental Health (SEMH):**
-    *   **Focus:** Managing feelings, behavior, anxiety, building relationships, mental health conditions.
+    *   **Focus:** Managing feelings, behavior, anxiety, building relationships, mental health conditions. Self-image including self-esteem, ability to understand and manage emotions and behaviours, triggers that lead to emotional difficulties, anxiety, withdrawn behaviours, emotional and social needs where these are related to past trauma / childhood adversity.  
     *   ***Strong Indicator:*** Often found in reports from CAMHS or under this heading in an EP report.
     *   *Example: "Experiences high levels of anxiety about attending school."*
 
 *   **Sensory and/or Physical:**
-    *   **Focus:** Mobility, motor skills (fine and gross), vision, hearing, sensory processing.
+    *   **Focus:** Mobility, motor skills (fine and gross), vision, hearing, sensory processing. References to balance, coordination, jumping/running abilities. Sensory processing usually differences in managing noise, touch, light and vestibular / proprioceptive needs. 
     *   ***Strong Indicator:*** Often found in reports from Occupational Therapy, Physiotherapy, or Sensory Integration specialists.
     *   *Example: "Is hypersensitive to loud noises in the classroom."*
 
