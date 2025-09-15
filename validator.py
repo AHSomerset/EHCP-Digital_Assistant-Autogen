@@ -6,7 +6,6 @@ from utils import (
     is_terminate_message,
     download_blob_as_text_async,
     upload_blob_async,
-    download_all_sources_from_container_async
 )
 
 # This team is responsible for validating the document against criteria and generating a feedback report.
@@ -72,8 +71,7 @@ def create_validator_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatM
 
     agent_tools = [
         download_blob_as_text_async,
-        upload_blob_async,
-        download_all_sources_from_container_async
+        upload_blob_async
     ]
 
     for func in agent_tools:

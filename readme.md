@@ -1,6 +1,6 @@
 # AutoGen EHCP Document Automation Pipeline
 
-This project is a sophisticated multi-agent system designed to automate the generation of complex, multi-section Education, Health, and Care Plan (EHCP) documents. It leverages the Microsoft AutoGen framework to orchestrate teams of AI agents that perform specialized roles. The entire data pipeline is built on Azure Blob Storage, moving from raw source documents in the cloud to a fully validated and merged final output in a robust, parallel, and fault-tolerant manner.
+This project is a sophisticated multi-agent system designed to automate the generation of complex, multi-section Education, Health, and Care Plan (EHCP) documents. It leverages the Microsoft AutoGen framework to orchestrate teams of AI agents that perform specialised roles. The entire data pipeline is built on Azure Blob Storage, moving from raw source documents in the cloud to a fully validated and merged final output in a robust, parallel, and fault-tolerant manner.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ This project is a sophisticated multi-agent system designed to automate the gene
 -   **Word Document Export:** Automatically parses the final structured Markdown output and populates a custom `.docx` template, producing a professionally formatted, ready-to-use final document.
 -   **Configuration-Driven:** A central `config.py` file manages all application settings, file paths, and LLM configurations, making the system easy to manage and reconfigure.
 -   **Modular and DRY Guidance:** Agent instructions are externalised into a version-controllable `instructions/` directory. Reusable partials, including shared "structure" files, ensure consistency and adhere to the DRY (Don't Repeat Yourself) principle across both Writer and Validator teams.
--   **Comprehensive Logging:** The system generates detailed run logs and a high-level process trace for debugging and monitoring.
+-   **Cloud-Ready Logging:** The system generates detailed run logs and a high-level process trace, saving them both locally and uploading them to a dedicated Azure Blob Storage container for persistent, reliable access.
 -   **Automated File Management:** Includes a pre-processing step to convert source PDFs to clean text and a guaranteed cleanup process to ensure a clean state for every run.
 -   **Tiered LLM Strategy:** Uses two different LLM tiers—a powerful model for content generation and a faster model for orchestration and planning.
 
@@ -25,8 +25,9 @@ The application follows a robust, multi-stage pipeline designed to maximise qual
 -   Each PDF is read, its text is extracted, cleaned, and then saved as a `.txt` file in the `/processed_docs` directory. This ensures that the AI agents work with a clean, consistent data source.
 
 **Stage 2: Concurrent Sectional Generation**
--   The system initiates a writer and validator team for each of the 3 document sections.
+-   The system initiates a writer and validator team for each of the document sections.
 -   Using `asyncio`, these teams work in parallel, up to the concurrency limit set in `config.py`.
+-   For each section, it first fetches the correct source documents, applying any section-specific exclusions as defined in config.py. This requires a strict naming convention for appendix documents.
 
 **Stage 3: The Write-Validate-Refine Loop**
 -   For each section, the process is as follows:
@@ -51,23 +52,28 @@ The application follows a robust, multi-stage pipeline designed to maximise qual
 -   The final, professionally formatted output is saved to the `outputs` container as `draft_EHCP.docx`..
 
 **Stage 6: Cleanup**
--   Finally, the `clear_blob_container_async` function is called to empty the `processed-docs` container, ensuring the next run starts from a clean state. This step is guaranteed to run, even if the process fails.
+-   The `finally` block in `main.py` guarantees that final tasks are always run.
+-   Log Upload: The complete log files for the run are uploaded to the logs blob container for permanent storage.
+-   Container Cleanup: The processed-docs container is cleared to ensure the next run starts from a clean state.
+
 
 ## Agent Team Structure
 
 #### 1. The Writer Team (`create_writer_team`)
 -   **Purpose:** To draft and revise a specific document section from source files.
+-   **Context:** Receives its guidance and pre-filtered source documents directly in the initial prompt from the orchestrator.
 -   **Agents:**
-    -   `Planner`: The orchestrator. Follows a strict plan to read guidance, read sources, delegate drafting, and order the saving of the file. It is the only agent in this team authorised to issue the `TERMINATE` signal.
+    -   `Planner`: Orchestrates the team's workflow. Follows a strict plan to delegate drafting and order the saving of the file. It is the only agent in this team authorised to issue the `TERMINATE` signal.
     -   `Document_Writer`: The content specialist. Its sole job is to synthesise information and write the document text. It does not engage in conversation.
-    -   `Writer_User_Proxy`: The tool user. Executes file I/O operations (`read`, `save`, `list`) on behalf of the Planner.
+    -   `Writer_User_Proxy`:  Executes tool calls, primarily for saving the final output file.
 
 #### 2. The Validator Team (`create_validator_team`)
 -   **Purpose:** To validate a single section draft for factual accuracy, structural integrity, and rule compliance.
+-   **Context:** Receives its validation rules and the same pre-filtered source documents as the writer directly in its prompt.
 -   **Agents:**
     -   `Quality_Assessor`: The lead validator. It performs structural checks and consolidates all findings into the final feedback report. It is the only agent in this team authorised to issue the `TERMINATE` signal.
-    -   `Fact_Checker`: The accuracy specialist. Its sole job is to compare the draft against the source documents and report any factual discrepancies.
-    -   `Validator_User_Proxy`: The tool user for this team.
+    -   `Fact_Checker`: The accuracy specialist. Its sole job is to compare the draft against the source documents and report any factual discrepancies or hallucinations.
+    -   `Validator_User_Proxy`: The tool user. Its main jobs are to download the draft being reviewed and upload the final feedback report.
 
 ## Project Structure
 
@@ -97,7 +103,7 @@ The application follows a robust, multi-stage pipeline designed to maximise qual
 
 1.  **Prerequisites:**
     -   You must have an Azure account and an Azure Storage Account.
-    -   Create three blob containers within your storage account: source-docs, processed-docs, and outputs.
+    -   Create five blob containers within your storage account: source-docs, processed-docs, outputs, final-document, and run-archive
 
 2.  **Clone the repository:**
     ```bash
@@ -158,6 +164,6 @@ The application follows a robust, multi-stage pipeline designed to maximise qual
 After a successful run:
 -   **Final Document:** The final draft_EHCP.docx and the merged final_document.md will be located in your `outputs` Azure Blob Storage container.
 -   **Intermediate Files:** Sectional drafts (output_sX_iY.md) and their feedback reports (feedback_sX_iY.md) will also be in the outputs  container, providing a full audit trail.
--   **Local Logs:** Detailed logs are saved locally in the /logs directory.
+-   **Local Logs:** Detailed logs are saved in the run-archive storage container and in the local 'logs' directory.
     -   /logs/full_run_YYYY-MM-DD_HH-MM-SS.log contains the full, verbose console output.
     -   /logs/loop_trace_YYYY-MM-DD_HH-MM-SS.log contains a high-level summary of the process flow.

@@ -3,8 +3,7 @@ from autogen import ConversableAgent, UserProxyAgent, GroupChat, GroupChatManage
 from typing import Dict
 from utils import (
     is_terminate_message,
-    upload_blob_async,
-    download_all_sources_from_container_async
+    upload_blob_async
 )
 
 # This team is responsible for drafting the document
@@ -44,11 +43,10 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
         
         """You are a meticulous planner. Your role is to create a step-by-step plan and ensure it is followed precisely.
 
-        The initial prompt already contains all the necessary guidance and rules for the `Document_Writer`. Your first step is to read the source documents.
+        The initial prompt already contains all the necessary guidance and the relavent source documents. Your first step is to direct the drafting of the content.
 
         **Your plan is ALWAYS:**
-        1.  **Read Sources:** Direct the `Writer_User_Proxy` to call `download_all_sources_from_container_async` on the 'processed-docs' container. This single tool call will provide all necessary source document content.
-        2.  **Draft Content:** After all sources are provided, direct the `Document_Writer` to synthesize the information to write the document. **You must explicitly remind the `Document_Writer` to strictly follow the writer's guidance provided in the initial user prompt.**
+        1.  **Draft Content:** Direct the `Document_Writer` to synthesise all the provided information to write the document. **You must explicitly remind the `Document_Writer` to strictly follow the writer's guidance.**
         3.  **Save Output:** After the `Document_Writer` has provided the complete draft, direct the `Writer_User_Proxy` to save the result using the `upload_blob_async` tool, specifying the exact container and blob name as instructed in the initial user prompt.
         4.  **Terminate:** After the save is confirmed, you MUST respond with the single word: "TERMINATE".
 
@@ -57,8 +55,7 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
  
     
     agent_tools = [
-        upload_blob_async,
-        download_all_sources_from_container_async
+        upload_blob_async
     ]
 
     for func in agent_tools:

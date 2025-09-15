@@ -82,15 +82,18 @@ def get_section_config(section_number: str) -> dict:
     path_map = {
         "1": {
             "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, STRUCTURE_S1],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, STRUCTURE_S1]
+            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, STRUCTURE_S1],
+            "source_exclude_files": []
         },
         "2": {
             "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, STRUCTURE_S2],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, STRUCTURE_S2]
+            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, STRUCTURE_S2],
+            "source_exclude_files": []
         },
         "3": {
             "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3]
+            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3],
+            "source_exclude_files": ['appendix_a.pdf']
         },
     }
 

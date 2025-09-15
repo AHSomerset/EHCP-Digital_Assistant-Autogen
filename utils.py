@@ -2,7 +2,7 @@ import os
 import re
 import pypdf
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict
 import config
 import asyncio
 import io
@@ -88,37 +88,76 @@ async def download_blob_as_bytes_async(container_name: str, blob_name: str) -> b
         logging.error(f"Failed to download blob '{blob_name}' as bytes. Reason: {e}")
         return b""
 
-async def download_all_sources_from_container_async(container_name: str) -> str:
+async def download_all_sources_from_container_async(container_name: str, exclude_files: List[str] = None) -> str:
     """
-    Asynchronously and CONCURRENTLY lists all blobs in a container, downloads
+    Asynchronously lists all blobs in a container, downloads
     their text content, and returns it as a single concatenated string.
-    This is the primary tool for providing source context to agents.
+    This is the primary tool for providing source context to agents. Optionally excludes specified files.
     """
     logging.info(f"--- Concurrently downloading all source documents from container: {container_name} ---")
+
+    if exclude_files is None:
+        exclude_files = []
+
+    # Convert exclusion list to lowercase for case-insensitive comparison
+    exclude_files_lower = [f.lower() for f in exclude_files]
+
+    logging.info(f"--- Downloading source documents from container: {container_name} ---")
+    if exclude_files_lower:
+        logging.info(f"--- Excluding files: {exclude_files} ---")
     
-    # Step 1: Get the list of all blob names to be downloaded.
+    # Get the list of all blob names to be downloaded.
     blob_names = await list_blobs_async(container_name)
     
     if not blob_names:
         logging.warning(f"No blobs found in container '{container_name}'.")
         return "ERROR: No source documents found in the specified container."
+    
+    full_content = ""
+    for blob_name in blob_names:
+        filename = os.path.basename(blob_name)
+        # Check against the original name (e.g., appendix_a.pdf.txt) and the name without .txt
+        if filename.lower() in exclude_files_lower or filename.lower().replace(".txt", "") in exclude_files_lower:
+            logging.info(f"Skipping excluded source file: {filename}")
+            continue
 
-    # Step 2: Create a list of download tasks without awaiting them yet.
-    download_tasks = [download_blob_as_text_async(container_name, blob_name) for blob_name in blob_names]
+        logging.info(f"Reading source file: {blob_name}")
+        full_content += f"--- START OF FILE {filename} ---\n\n"
+        full_content += await download_blob_as_text_async(container_name, blob_name)
+        full_content += f"\n\n--- END OF FILE {filename} ---\n\n"
+    # # Step 2: Create a list of download tasks without awaiting them yet.
+    # download_tasks = [download_blob_as_text_async(container_name, blob_name) for blob_name in blob_names]
 
-    # Step 3: Execute all the download tasks concurrently using asyncio.gather.
-    contents = await asyncio.gather(*download_tasks)
+    # # Step 3: Execute all the download tasks concurrently using asyncio.gather.
+    # contents = await asyncio.gather(*download_tasks)
     
     logging.info(f"--- Finished downloading {len(blob_names)} source documents. Formatting content. ---")
 
     # Step 4: Now that all content is downloaded, format it into a single string.
-    full_content_parts = []
-    for i, content in enumerate(contents):
-        blob_name = blob_names[i]
-        filename = os.path.basename(blob_name)
-        full_content_parts.append(f"--- START OF FILE {filename} ---\n\n{content}\n\n--- END OF FILE {filename} ---\n\n")
+    # full_content_parts = []
+    # for i, content in enumerate(contents):
+    #     blob_name = blob_names[i]
+    #     filename = os.path.basename(blob_name)
+    #     full_content_parts.append(f"--- START OF FILE {filename} ---\n\n{content}\n\n--- END OF FILE {filename} ---\n\n")
     
-    return "".join(full_content_parts)
+    # return "".join(full_content_parts)
+    return full_content
+
+async def _read_local_guidance_files_async(file_paths: list) -> str:
+    """Asynchronously reads local guidance files without blocking."""
+    loop = asyncio.get_running_loop()
+    def _read_sync():
+        full_content = ""
+        for path in file_paths:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    full_content += f"--- START OF GUIDANCE FILE: {os.path.basename(path)} ---\n"
+                    full_content += f.read()
+                    full_content += f"\n--- END OF GUIDANCE FILE ---\n\n"
+            except FileNotFoundError:
+                logging.error(f"Guidance file not found: {path}")
+        return full_content
+    return await loop.run_in_executor(None, _read_sync)
 
 async def clear_blob_container_async(container_name: str):
     """

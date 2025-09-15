@@ -33,6 +33,8 @@ logs/
 .vscode/
 .idea/
 *.DS_Store
+.vscode
+
 
 
 # Other files that are not part of the source code or configuration

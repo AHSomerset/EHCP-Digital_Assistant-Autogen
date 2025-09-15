@@ -5,7 +5,7 @@ from typing import Dict
 from autogen import ConversableAgent
 from tasks import get_creation_task, get_correction_task, run_validation_async
 from writer import create_writer_team
-from utils import download_blob_as_text_async, parse_feedback_and_count_issues
+from utils import download_blob_as_text_async, parse_feedback_and_count_issues, download_all_sources_from_container_async
 
 async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm_config: Dict, llm_config_fast: Dict, prompt_writer: ConversableAgent):
     """Asynchronously processes a single section, including retries, under a semaphore."""
@@ -16,6 +16,17 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
         loop_logger = logging.getLogger('LoopTracer')
         
         try:
+            
+            # Get source content for this section, respecting any exclude list
+            section_config = config.get_section_config(section_number)
+            exclude_list = section_config.get("source_exclude_files", []) # Use .get for safety
+            
+            logging.info(f"Fetching source documents for Section {section_number}...")
+            source_content = await download_all_sources_from_container_async(
+                config.PROCESSED_BLOB_CONTAINER, 
+                exclude_files=exclude_list
+            )
+
             # ==================================================================
             # === Initial Document Creation ================
             # ==================================================================
@@ -27,7 +38,7 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
             writer_manager = create_writer_team(llm_config, llm_config_fast)
             writer_proxy_agent = writer_manager.groupchat.agent_by_name("Writer_User_Proxy")
             
-            creation_task = await get_creation_task(section_number, current_output_name)
+            creation_task = await get_creation_task(section_number, current_output_name, source_content)
             await writer_proxy_agent.a_initiate_chat(
                 recipient=writer_manager, message=creation_task, clear_history=True
             )
@@ -44,11 +55,12 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
 
                 # --- VALIDATOR TEAM ---
                 # Validates the output of the previous step and creates this iteration's feedback file.
-                await run_validation_async(section_number, llm_config, llm_config_fast, current_output_name, feedback_name)
+                await run_validation_async(section_number, llm_config, llm_config_fast, current_output_name, feedback_name, source_content)
                 loop_logger.info(f"Section {section_number}, Iteration {i}: Validator team completed.'{feedback_name}' created.")
             
                 # --- ASSESSMENT ---
                 feedback_content = await download_blob_as_text_async(config.OUTPUT_BLOB_CONTAINER, feedback_name)
+                
                 issue_counts = parse_feedback_and_count_issues(feedback_content)
                 logging.info(f"Section {section_number} Issues Found: Critical={issue_counts.get('critical', 0)}, Standard={issue_counts.get('standard', 0)}")
 
@@ -87,7 +99,7 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
                 
                 # Define the name for the NEXT output file
                 next_output_name = f"output_s{section_number}_i{i+1}.md"
-                correction_task = await get_correction_task(section_number, previous_draft, revision_instructions, next_output_name)
+                correction_task = await get_correction_task(section_number, previous_draft, revision_instructions, next_output_name, source_content)
 
                 # --- CORRECTION WRITER TEAM ---
                 await writer_proxy_agent.a_initiate_chat(
