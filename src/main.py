@@ -19,6 +19,7 @@ Key Responsibilities:
 
 import os
 import sys
+import re
 import logging
 import time
 import asyncio
@@ -27,7 +28,7 @@ import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 
-# The 'src' directory is now the root for the execution.
+# The 'src' directory is the root for the execution.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from .ehcp_autogen import config 
@@ -110,7 +111,32 @@ async def main_async():
                 # This sub-try block handles errors in Word generation without losing the successful merge status
                 try:
                     logging.info("Downloading final markdown from blob...")
-                    final_markdown_content = await download_blob_as_text_async(config.OUTPUT_BLOB_CONTAINER, config.FINAL_DOCUMENT_FILENAME)
+                    cited_markdown_content = await download_blob_as_text_async(config.OUTPUT_BLOB_CONTAINER, config.FINAL_DOCUMENT_FILENAME)
+
+                    if not cited_markdown_content:
+                        raise ValueError("Downloaded final markdown content is empty.")
+
+                    # Create and upload Fact Mapper document
+                    logging.info("Cleaning citation tags for the final Fact Mapper...")
+                    # This regex finds '.pdf.txt' that is immediately followed by a ']' and removes it.
+                    fact_mapper_content = re.sub(r'\.pdf\.txt(?=\])', '', cited_markdown_content)
+
+                    logging.info("Parsing fact_mapper to generate Word document.")
+                    fact_mapper_context = parse_markdown_to_dict(fact_mapper_content)
+                    
+                    template_path = os.path.join(config.TEMPLATES_DIR, "template.docx")
+                    temp_fact_mapper_doc_path = os.path.join(config.OUTPUTS_DIR, "fact_mapper.docx")
+                    generate_word_document(fact_mapper_context, template_path, temp_fact_mapper_doc_path)
+
+                    fact_mapper_blob_name = "fact_mapper.docx"
+                    logging.info(f"Uploading fact mapper document to blob: {fact_mapper_blob_name}")
+                    with open(temp_fact_mapper_doc_path, "rb") as docx_file:
+                        await upload_blob_async(config.FINAL_DOCUMENT_CONTAINER, fact_mapper_blob_name, docx_file.read())
+
+                    # Create the clean version for the final Word document
+                    logging.info("Creating clean version of markdown by removing citation tags...")
+                    # Use regex to remove all [SOURCE: ...] tags
+                    final_markdown_content = re.sub(r'\s*\[SOURCE:.*?\]', '', cited_markdown_content)
                     
                     logging.info("Parsing final markdown to generate Word document.")
                     final_data_context = parse_markdown_to_dict(final_markdown_content)
@@ -124,7 +150,7 @@ async def main_async():
                     with open(temp_output_doc_path, "rb") as docx_file:
                         await upload_blob_async(config.FINAL_DOCUMENT_CONTAINER, output_blob_name, docx_file.read())
                     
-                    logging.info(f"✅ Final Word document successfully generated and uploaded.")
+                    logging.info(f"✅ Final documents (Fact Mapper and Word Doc) successfully generated and uploaded.")
                 
                 except Exception as e:
                     logging.error(f"Failed during Word document generation phase. Reason: {e}", exc_info=True)

@@ -74,7 +74,7 @@ async def run_validation_async(section_number: str, llm_config: dict, llm_config
 
     validator_task = f"""
     You task is to validate the document '{output_blob_name}'. 
-    Your full isntructions and rules are below:
+    Your full instructions and rules are below:
     {guidance_content}
     
     Here is the full content of all relevant source documents you must use for validation:

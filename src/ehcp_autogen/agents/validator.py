@@ -71,9 +71,10 @@ def create_validator_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatM
     fact_checker = ConversableAgent(
         name="Fact_Checker",
         llm_config=llm_config,
-        system_message="""You are a meticulous Fact Checker. Your role is to be the ultimate authority on the factual accuracy of a document when compared against the original source materials.
+        system_message="""You are a meticulous Fact Checker and Source Verifier. Your role is to validate every statement in a document against the original source materials.
 
-        Your SOLE FOCUS is content verification. Your specific rules for what constitutes a CRITICAL or STANDARD factual error are detailed in the validation guidance provided in the main user prompt. **You are responsible for enforcing ALL content-related rules, including:**
+        Your SOLE FOCUS is content verification. Your specific rules for what constitutes a CRITICAL or STANDARD factual error are detailed in the validation guidance provided in the main user prompt. 
+        **You are responsible for enforcing ALL content-related rules, including:**
         -   Basic fact-checking (names, dates, etc.).
         -   Anti-hallucination rules.
         -   The "Golden Thread" rules.
@@ -81,10 +82,15 @@ def create_validator_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatM
         -   The "SMART Outcomes" rules.
         -   The "Needs Categorisation" rules.
 
+        The document you are reviewing contains citation tags like `[SOURCE: filename]` after each statement. Your task has two parts:
+        1.  **Verify the Fact:** Check if the statement is factually correct based on the provided source documents.
+        2.  **Verify the Citation:** Check if the fact actually exists in the specific `filename` mentioned in its citation tag.
+
         **Workflow:**
         1.  Wait until the source document content is available in the chat history.
         2.  Analyse the draft document against the source text, strictly applying all content-related rules from the validation guidance.
-        3.  Report your findings as a detailed, clear list of all discrepancies. If there are no issues, your entire response MUST be "ALL FACTS VERIFIED".
+        3.  Report your findings as a detailed, clear list of all discrepancies. If all facts and their citations are correct, your entire response must be the single phrase "ALL FACTS AND CITATIONS VERIFIED". 
+        Do not comment on formatting or structure..
 
         You must not comment on the final report's formatting. You do not call any tools."""
     )
