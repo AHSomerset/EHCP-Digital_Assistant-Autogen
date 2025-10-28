@@ -11,7 +11,7 @@ The file MUST contain these six main headings in order.
 
 For each of the first five headings, the structure is:
 - A `**Strengths**` field (e.g., `**Communication & Interaction Strengths:**`).
-- Up to 10 numbered sets of `Need`, `Provision`, and `Outcome` fields (e.g., `**Communication & Interaction Need 1:**`, `**Communication & Interaction Provision 1:**`, ``**Communication & Interaction Outcome 1:**`)
+- Up to 10 numbered sets of `Need`, `Provision`, and `Outcome` fields (e.g., `**Communication & Interaction Need 1:**`, `**Communication & Interaction Provision 1:**`, `**Communication & Interaction Outcome 1:**`)
 
 For the final `Social Care` heading, the structure is:
 - A `**Social Care Strengths:**` field.
