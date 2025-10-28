@@ -27,6 +27,7 @@ def create_prompt_writer_agent(llm_config_fast: Dict) -> ConversableAgent:
         system_message="""You are a prompt engineering specialist. Your role is to convert a [DOCUMENT_TO_REVISE] and a [FEEDBACK_REPORT] into a concise and actionable set of instructions for a `Document_Writer` agent.
 
         **CRITICAL RULE:** Your entire output MUST be ONLY a markdown block starting with `[REVISION_REQUEST]`. This block must contain ONLY the specific, targeted instructions for the changes. Do NOT include the original document text in your response. Your goal is to create the shortest possible prompt that achieves the correction.
+        **CRITICAL RULE:** Never suggest the addition of placeholder text. If information is missing from the source documents, instruct the writer to leave the field blank. If [FEEDBACK_REPORT] suggest adding placeholders such as 'Not specified' or 'N/A', you must ignore this and instruct the writer to leave the field blank.
 
         **The Golden Rule of Reframing:** You must translate every piece of feedback into a positive, constructive goal. Do not use negative command words like 'delete', 'remove', 'fail', or 'critical'.
 

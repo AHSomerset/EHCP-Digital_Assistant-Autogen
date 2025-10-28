@@ -6,12 +6,16 @@ generation pipeline. It orchestrates the entire application lifecycle from
 initial setup to final cleanup.
 
 Key Responsibilities:
-- Initialises local directories and a unique run ID for traceability.
+- Initialises a unique run ID for traceability.
 - Executes the high-level, asynchronous workflow:
     1. Pre-processes source PDFs from Azure Blob Storage.
-    2. Kicks off the concurrent processing of all document sections.
+    2. Kicks off the concurrent processing of all document sections using the `process_section` orchestrator.
     3. Manages the final merge of validated sections.
-    4. Generates the final Word document from the merged markdown.
+    4. **Generates Dual Final Outputs:**
+        - A "Fact Mapper" document (`fact_mapper.docx`) that preserves all
+          inline source citations for auditing.
+        - A "clean" version of the content, which is used to generate the
+          final `.docx` document.
 - Implements a guaranteed `finally` block to ensure that all run artifacts
   (logs, outputs, source files) are archived and that temporary containers
   are cleaned up, regardless of whether the run succeeded or failed.

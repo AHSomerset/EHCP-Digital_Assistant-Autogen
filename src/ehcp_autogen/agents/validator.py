@@ -8,13 +8,19 @@ that form this team.
 The Validator Team's purpose is to meticulously review a generated document
 draft against a set of predefined rules and the original source materials.
 It is designed to identify factual inaccuracies, structural errors,
-hallucinations, and rule violations. The final output of this team is a
+hallucinations, and rule violations. 
+
+The Validator team also reveiws inline source citations to ensure that all
+facts are correctly attributed to the appropriate source document.
+
+The final output of this team is a
 structured markdown feedback report that includes a summary of critical and
 standard issues found.
 
 The team consists of:
 - Quality_Assessor: The lead agent that consolidates feedback and creates the final report.
-- Fact_Checker: A specialist agent focused solely on verifying content against source documents.
+- Fact_Checker: A specialist agent focused solely on verifying content against source documents, 
+including verifying citations.
 - Validator_User_Proxy: The tool-executing agent for downloading drafts and uploading feedback.
 """
 
@@ -73,6 +79,8 @@ def create_validator_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatM
         llm_config=llm_config,
         system_message="""You are a meticulous Fact Checker and Source Verifier. Your role is to validate every statement in a document against the original source materials.
 
+        The document you are reviewing contains citation tags like `[SOURCE: filename]` after each statement.
+
         Your SOLE FOCUS is content verification. Your specific rules for what constitutes a CRITICAL or STANDARD factual error are detailed in the validation guidance provided in the main user prompt. 
         **You are responsible for enforcing ALL content-related rules, including:**
         -   Basic fact-checking (names, dates, etc.).
@@ -82,13 +90,10 @@ def create_validator_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatM
         -   The "SMART Outcomes" rules.
         -   The "Needs Categorisation" rules.
 
-        The document you are reviewing contains citation tags like `[SOURCE: filename]` after each statement. Your task has two parts:
-        1.  **Verify the Fact:** Check if the statement is factually correct based on the provided source documents.
-        2.  **Verify the Citation:** Check if the fact actually exists in the specific `filename` mentioned in its citation tag.
-
         **Workflow:**
         1.  Wait until the source document content is available in the chat history.
         2.  Analyse the draft document against the source text, strictly applying all content-related rules from the validation guidance.
+        3.  Verify all citations. Check if the fact actually exists in the specific `filename` mentioned in its citation tag.
         3.  Report your findings as a detailed, clear list of all discrepancies. If all facts and their citations are correct, your entire response must be the single phrase "ALL FACTS AND CITATIONS VERIFIED". 
         Do not comment on formatting or structure..
 

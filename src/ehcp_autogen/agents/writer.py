@@ -10,9 +10,19 @@ and follow detailed guidance to produce a structured markdown document for a
 specific section. It operates in two modes: initial creation and correction,
 where it refines a previous draft based on feedback.
 
+A core responsibility of this team is to **create the evidence trail**
+for the final document.
+
+**Key Functionality: Cite-As-You-Write**
+The `Document_Writer` is explicitly instructed to append a `[SOURCE: ...]`
+citation tag to every single piece of information it writes. This creates the
+foundational "fact map" that is later verified by the Validator team and
+processed into the final auditable output.
+
 The team consists of:
 - Planner: A fast orchestrator agent that directs the workflow and ensures tasks are completed in order.
-- Document_Writer: The specialist content generation agent that synthesises information and writes the draft.
+- Document_Writer: The specialist content generation agent that synthesises information and writes the draft,
+including in-line citations.
 - Writer_User_Proxy: The tool-executing agent for saving the final document to blob storage.
 """
 
