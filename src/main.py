@@ -157,7 +157,7 @@ async def main_async():
                 # allowing external systems (Flow) to easily determine if the process 
                 # completed successfully without parsing logs.
                 await upload_blob_async(
-                    container_name=config.OUTPUT_BLOB_CONTAINER,
+                    container_name=config.FINAL_DOCUMENT_CONTAINER,
                     blob_name="fail.txt",
                     data=b""  # Upload empty bytes to create an empty file
                 )
@@ -174,7 +174,7 @@ async def main_async():
         await clear_blob_container_async(config.OUTPUT_BLOB_CONTAINER)
         
         print("\n--- Clearing source documents for next run. ---")
-        #await clear_blob_container_async(config.SOURCE_BLOB_CONTAINER)
+        await clear_blob_container_async(config.SOURCE_BLOB_CONTAINER)
 
 if __name__ == "__main__":
     try:

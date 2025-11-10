@@ -126,7 +126,7 @@ async def download_all_sources_from_container_async(container_name: str, exclude
 
     # A case-insensitive comparison is used for the exclusion list to make the
     # configuration more robust against user input variations (e.g., 'appendix a.pdf').
-    exclude_files_lower = [f.lower() for f in exclude_files]
+    exclude_files_lower = [f.lower().replace('.pdf', '') for f in exclude_files]
 
     logging.info(f"--- Downloading source documents from container: {container_name} ---")
     if exclude_files_lower:
@@ -145,9 +145,10 @@ async def download_all_sources_from_container_async(container_name: str, exclude
     # that the order of documents in the final concatenated string is predictable.
     for blob_name in blob_names:
         filename = os.path.basename(blob_name)
-        # Check against both the full filename (e.g., 'appendix a.pdf.txt') and the
-        # name without the '.txt' extension to provide flexibility in the config file.
-        if filename.lower() in exclude_files_lower or filename.lower().replace(".txt", "") in exclude_files_lower:
+        filename_lower = filename.lower()
+        filename_base = filename_lower.removesuffix('.txt')
+        # Check whether filename appears in exclude list.
+        if any(filename_base.startswith(prefix) for prefix in exclude_files_lower):
             logging.info(f"Skipping excluded source file: {filename}")
             continue
 
