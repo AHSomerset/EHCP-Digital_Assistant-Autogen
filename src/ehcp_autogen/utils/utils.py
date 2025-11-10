@@ -148,7 +148,7 @@ async def download_all_sources_from_container_async(container_name: str, exclude
         filename_lower = filename.lower()
         filename_base = filename_lower.removesuffix('.txt')
         # Check whether filename appears in exclude list.
-        if any(filename_base.startswith(prefix) for prefix in exclude_files_lower):
+        if any(exclusion in filename_base for exclusion in exclude_files_lower):
             logging.info(f"Skipping excluded source file: {filename}")
             continue
 
