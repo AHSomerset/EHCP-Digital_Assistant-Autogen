@@ -48,6 +48,16 @@ OUTPUT_BLOB_CONTAINER = "outputs"
 FINAL_DOCUMENT_CONTAINER = "final-document"
 ARCHIVE_BLOB_CONTAINER = "run-archive"
 
+# --- Azure AI Document Intelligence Settings ---
+AZURE_DI_ENDPOINT = os.getenv("AZURE_DI_ENDPOINT")
+AZURE_DI_KEY = os.getenv("AZURE_DI_KEY")
+
+AZURE_DI_MODEL_IDS = {
+    #"appendixa": "App.A",  
+    #"appendixb": "AppB",  
+    "default": "prebuilt-layout" # The fallback for everything else
+}
+
 # --- Application-Level Settings ---
 TOTAL_SECTIONS = 3
 CONCURRENT_SECTIONS = 3

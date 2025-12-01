@@ -32,6 +32,10 @@ import asyncio
 import io
 from azure.storage.blob.aio import BlobServiceClient
 from docxtpl import DocxTemplate
+from datetime import datetime, timedelta
+from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
 
 # ==============================================================================
 # 1. AZURE BLOB STORAGE UTILITIES
@@ -68,6 +72,33 @@ async def get_blob_container_client(container_name: str):
     """Helper to connect to a specific Azure Blob Storage container using the async singleton client."""
     blob_service_client = await _get_blob_service_client()
     return blob_service_client.get_container_client(container_name)
+
+async def get_blob_sas_url_async(container_name: str, blob_name: str) -> str:
+    """
+    Generates a SAS URL to provide temporary, secure, read-only access to a blob.
+    """
+    # This is a synchronous operation, so we run it in an executor to be safe
+    loop = asyncio.get_running_loop()
+    def _generate_sas_sync():
+        account_name = config.AZURE_STORAGE_ACCOUNT_NAME
+        account_key = config.AZURE_STORAGE_ACCOUNT_KEY
+        
+        # The SAS token will be valid for 1 hour
+        expiry_time = datetime.utcnow() + timedelta(hours=1)
+        
+        sas_token = generate_blob_sas(
+            account_name=account_name,
+            container_name=container_name,
+            blob_name=blob_name,
+            account_key=account_key,
+            permission=BlobSasPermissions(read=True),
+            expiry=expiry_time,
+        )
+        
+        # Construct the full URL
+        return f"https://{account_name}.blob.core.windows.net/{container_name}/{blob_name}?{sas_token}"
+        
+    return await loop.run_in_executor(None, _generate_sas_sync)
 
 async def list_blobs_async(container_name: str) -> List[str]:
     """Asynchronously lists the names of all blobs in a container."""
@@ -126,7 +157,7 @@ async def download_all_sources_from_container_async(container_name: str, exclude
 
     # A case-insensitive comparison is used for the exclusion list to make the
     # configuration more robust against user input variations (e.g., 'appendix a.pdf').
-    exclude_files_lower = [f.lower() for f in exclude_files]
+    exclude_files_lower = [f.lower().replace('.pdf', '') for f in exclude_files]
 
     logging.info(f"--- Downloading source documents from container: {container_name} ---")
     if exclude_files_lower:
@@ -145,9 +176,10 @@ async def download_all_sources_from_container_async(container_name: str, exclude
     # that the order of documents in the final concatenated string is predictable.
     for blob_name in blob_names:
         filename = os.path.basename(blob_name)
-        # Check against both the full filename (e.g., 'appendix a.pdf.txt') and the
-        # name without the '.txt' extension to provide flexibility in the config file.
-        if filename.lower() in exclude_files_lower or filename.lower().replace(".txt", "") in exclude_files_lower:
+        filename_lower = filename.lower()
+        filename_base = filename_lower.removesuffix('.txt')
+        # Check whether filename appears in exclude list.
+        if any(exclusion in filename_base for exclusion in exclude_files_lower):
             logging.info(f"Skipping excluded source file: {filename}")
             continue
 
@@ -254,8 +286,11 @@ async def archive_run_artifacts(run_id: str, run_timestamp: str):
 # High-level functions that orchestrate the application's data workflow.
 
 async def preprocess_all_pdfs_async() -> bool:
-    """Asynchronously downloads, processes, and re-uploads all PDFs."""
-    logging.info("--- Starting PDF Pre-processing from Blob Storage ---")
+    """
+    Processes all PDFs from the source container, intelligently routing each one
+    to the correct custom Document Intelligence model based on its filename.
+    """
+    logging.info("--- Starting Intelligent PDF Pre-processing Router ---")
     try:
         source_container = config.SOURCE_BLOB_CONTAINER
         processed_container = config.PROCESSED_BLOB_CONTAINER
@@ -267,24 +302,156 @@ async def preprocess_all_pdfs_async() -> bool:
             return True
 
         for pdf_blob_name in pdf_blob_names:
-            logging.info(f"Processing blob: {pdf_blob_name}")
-            pdf_bytes = await download_blob_as_bytes_async(source_container, pdf_blob_name)
-            if not pdf_bytes:
-                logging.warning(f"Skipping empty blob: {pdf_blob_name}")
-                continue
-
-            reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
-            extracted_text = "".join(page.extract_text() or "" for page in reader.pages)
-            cleaned_content = _clean_text(extracted_text)
+            model_id_to_use = config.AZURE_DI_MODEL_IDS["default"] # Start with the fallback
             
-            output_blob_name = pdf_blob_name + ".txt"
-            await upload_blob_async(processed_container, output_blob_name, cleaned_content)
+            # --- ROUTING LOGIC ---
+            filename_lower = pdf_blob_name.lower()
+            sanitised_filename = re.sub(r'[^a-z0-9]', '', filename_lower)
+            for keyword, model_id in config.AZURE_DI_MODEL_IDS.items():
+                if keyword in sanitised_filename:
+                    model_id_to_use = model_id
+                    logging.info(f"Match found: Filename '{pdf_blob_name}' contains '{keyword}'. Routing to model '{model_id_to_use}'.")
+                    break # Stop when we find the first match
 
-        logging.info("--- PDF Pre-processing Finished ---")
+            # --- ANALYSIS & UPLOAD ---
+            # Call the function with the selected model ID
+            processed_content = await analyse_document_with_di(pdf_blob_name, model_id_to_use)
+            
+            if processed_content:
+                output_blob_name = pdf_blob_name + ".txt"
+                await upload_blob_async(processed_container, output_blob_name, processed_content)
+            else:
+                logging.warning(f"No content was processed for '{pdf_blob_name}' (using model '{model_id_to_use}'). No output was saved.")
+
+        logging.info("--- Intelligent PDF Pre-processing Finished ---")
         return True
     except Exception as e:
         logging.critical(f"A critical error occurred during PDF pre-processing: {e}", exc_info=True)
         return False
+
+
+def _is_element_in_regions(element, all_table_regions) -> bool:
+    """Generic helper to check if an element's bounding box is inside a table's."""
+    if not element.bounding_regions:
+        return False
+    
+    elem_region = element.bounding_regions[0]
+    elem_coords = elem_region.polygon
+    
+    # Get the bounding box of the element
+    elem_min_x = min(elem_coords[0::2])
+    elem_max_x = max(elem_coords[0::2])
+    elem_min_y = min(elem_coords[1::2])
+    elem_max_y = max(elem_coords[1::2])
+
+    for table_region in all_table_regions:
+        if elem_region.page_number != table_region.page_number:
+            continue
+
+        table_coords = table_region.polygon
+        table_min_x = min(table_coords[0::2])
+        table_max_x = max(table_coords[0::2])
+        table_min_y = min(table_coords[1::2])
+        table_max_y = max(table_coords[1::2])
+
+        # Check if the two bounding boxes overlap at all.
+        # It is true if box A is not completely to the left/right/above/below box B.
+        x_overlap = (elem_min_x < table_max_x) and (elem_max_x > table_min_x)
+        y_overlap = (elem_min_y < table_max_y) and (elem_max_y > table_min_y)
+
+        if x_overlap and y_overlap:
+            return True # The boxes overlap, so the paragraph is part of the table.
+    return False
+
+def _format_table_as_markdown(table) -> str:
+    """Converts a Document Intelligence table object into a Markdown string."""
+    grid = [["" for _ in range(table.column_count)] for _ in range(table.row_count)]
+    for cell in table.cells:
+        if cell.row_index < len(grid) and cell.column_index < len(grid[0]):
+            grid[cell.row_index][cell.column_index] = cell.content.replace('\n', ' ').strip()
+    
+    if not grid:
+        return ""
+        
+    markdown = f"\n### Table (Page {table.bounding_regions[0].page_number})\n"
+    header = " | ".join(grid[0])
+    markdown += f"| {header} |\n"
+    separator = " | ".join(["---"] * len(grid[0]))
+    markdown += f"| {separator} |\n"
+    for row in grid[1:]:
+        data_row = " | ".join(row)
+        markdown += f"| {data_row} |\n"
+    
+    return markdown + "\n"
+
+async def analyse_document_with_di(blob_name: str, model_id: str) -> str:
+    """
+    Analyses a document from blob storage with a specified Document Intelligence
+    model, intelligently separating paragraphs from tables and preserving order.
+    """
+    logging.info(f"Analysing document '{blob_name}' with model '{model_id}'...")
+    try:
+        endpoint = config.AZURE_DI_ENDPOINT
+        key = config.AZURE_DI_KEY
+        
+        document_intelligence_client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+        blob_sas_url = await get_blob_sas_url_async(config.SOURCE_BLOB_CONTAINER, blob_name)
+
+        poller = await document_intelligence_client.begin_analyze_document(
+            model_id=model_id, body={"urlSource": blob_sas_url}
+        )
+        result = await poller.result()
+        await document_intelligence_client.close()
+
+        output_string = f"# Analysis of Document: {blob_name}\n\n"
+
+        # Check if the result came from a custom model (which populates the 'documents' field).
+        if result.documents:
+            # --- PATH 1: Custom Model ---
+            # This is the high-accuracy path.
+            logging.info(f"Processing result from custom model '{model_id}'.")
+            for doc in result.documents:
+                output_string += f"## Form Data (Doc Type: {doc.doc_type})\n"
+                for field_name, field in doc.fields.items():
+                    # 'field.content' is the extracted value.
+                    value_content = field.content.strip() if field.content else ""
+                    output_string += f"**{field_name}:** {value_content}\n"
+                output_string += "\n"
+        else:
+            # --- PATH 2: Pre-built/Layout Model (The Fallback) ---
+            # This is the logic for handling documents which don't have a custom pre-trained model.
+            logging.info(f"Processing result from pre-built model '{model_id}'.")
+            
+            all_elements = []
+            table_regions = []
+
+            if result.tables:
+                for table in result.tables:
+                    table_regions.extend(table.bounding_regions)
+                    top_y = table.bounding_regions[0].polygon[1]
+                    page_num = table.bounding_regions[0].page_number
+                    all_elements.append({'type': 'table', 'content': table, 'page': page_num, 'y_pos': top_y})
+
+            if result.paragraphs:
+                for paragraph in result.paragraphs:
+                    if not _is_element_in_regions(paragraph, table_regions):
+                        top_y = paragraph.bounding_regions[0].polygon[1]
+                        page_num = paragraph.bounding_regions[0].page_number
+                        all_elements.append({'type': 'paragraph', 'content': paragraph.content, 'page': page_num, 'y_pos': top_y})
+
+            all_elements.sort(key=lambda item: (item['page'], item['y_pos']))
+
+            for element in all_elements:
+                if element['type'] == 'paragraph':
+                    output_string += f"{element['content']}\n\n"
+                elif element['type'] == 'table':
+                    output_string += _format_table_as_markdown(element['content'])
+        
+        return output_string
+
+    except Exception as e:
+        logging.error(f"Failed to analyse document '{blob_name}' with model '{model_id}'. Reason: {e}", exc_info=True)
+        return ""
 
 async def read_guidance_files_async(file_paths: list) -> str:
     """Asynchronously reads local guidance files without blocking."""
