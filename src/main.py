@@ -123,7 +123,7 @@ async def main_async():
                     # Create and upload Fact Mapper document
                     logging.info("Cleaning citation tags for the final Fact Mapper...")
                     # This regex finds '.pdf.txt' that is immediately followed by a ']' and removes it.
-                    fact_mapper_content = re.sub(r'\.pdf\.txt(?=\])', '', cited_markdown_content)
+                    fact_mapper_content = re.sub(r'\d+_|\.pdf\.txt(?=\])', '', cited_markdown_content)
 
                     logging.info("Parsing fact_mapper to generate Word document.")
                     fact_mapper_context = parse_markdown_to_dict(fact_mapper_content)
