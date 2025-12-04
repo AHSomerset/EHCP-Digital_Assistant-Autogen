@@ -36,7 +36,7 @@ Avoid blunt statements when describing needs. Be factual, but sympathetic to the
 - Not all sections must have needs included. Only if there are needs which fit that category in the source documents should they be included in the ouput file. Each section may have between 0 and 10 needs. All special educational needs identified in the source documents should appear in the output file.
 
 
-*   **Handling Multiple Provisions/Outcomes:** If a single need is met by multiple distinct provisions, or leads to multiple distinct outcomes, you **MUST** list all of them within the single corresponding `Provision` or `Outcome` field. You **MUST** use a bulleted list (using a hyphen `-`) to separate each item.
+*   **Handling Multiple Provisions/Outcomes:** If a single need is met by multiple distinct provisions, or leads to multiple distinct outcomes, you **MUST** list all of them within the single corresponding `Provision` or `Outcome` field. You **MUST** use a bulleted list (using a hyphen `-`) to separate each item. Some Needs/Provisions will have short term and long term outcomes - include both of these.
 
 
 
