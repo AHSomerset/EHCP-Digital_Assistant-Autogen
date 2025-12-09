@@ -12,8 +12,8 @@ Your goal is to create `output_s1_i#.md` by extracting personal details, contact
 *   **Sex:** State sex at birth. If gender identity has changed, add it in brackets, e.g., 'Male (identifies as non-binary)'.
 *   **Parent Names:** Use format: Forename, Surname.
 *   **Parent Relationships:** Relationship to child.
-*   **Home address:** Provide the full address, separated by commas.
-*   **GP and key health professional:** List the GP Practice or Hospital Department name providing oversight of the case. **DO NOT** name individual doctors.
+*   **Home address:** Provide the full address, separated by commas. Include an address for parent 2 if they have a different address to parent 1.
+*   **GP and key health professional:** State the GP Practice or Hospital Department name providing oversight of the case. **DO NOT** name individual doctors.
 *   **Other professionals involved:** List each service/department on a new line. **DO NOT** name individuals.
 *   **Known to social care:** Yes/No
 *   **Currently a looked after child:** Yes/No

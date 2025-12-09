@@ -45,3 +45,6 @@ logs/
 # Local test scripts for final doc parsing
 test_word_generator.py
 generate_placeholders.py
+
+# Test output files
+compare_readability.py

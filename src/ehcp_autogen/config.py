@@ -92,6 +92,7 @@ if not all([azure_api_key, azure_endpoint, azure_model_name, azure_model_name2, 
 # Define paths to reusable instruction partials
 _PARTIALS_DIR = os.path.join(INSTRUCTIONS_DIR, "partials")
 WRITER_COMMON_RULES = os.path.join(_PARTIALS_DIR, "_writer_common_rules.md")
+STYLE_GUIDE = os.path.join(_PARTIALS_DIR, "_writing_style_guide.md")
 NEED_CATEGORISATION_GUIDE = os.path.join(_PARTIALS_DIR, "_need_categorisation_guide.md")
 VALIDATOR_COMMON_RULES = os.path.join(_PARTIALS_DIR, "_validator_common_rules.md")
 VALIDATOR_COMMON_FEEDBACK_FORMAT = os.path.join(_PARTIALS_DIR, "_validator_common_feedback_format.md")
@@ -116,7 +117,7 @@ def get_section_config(section_number: str) -> dict:
             "source_exclude_files": []
         },
         "2": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, STRUCTURE_S2],
+            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, STYLE_GUIDE, STRUCTURE_S2],
             "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, STRUCTURE_S2],
             "source_exclude_files": []
         },

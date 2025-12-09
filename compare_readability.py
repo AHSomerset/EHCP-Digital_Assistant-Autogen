@@ -10,35 +10,22 @@ import re
 
 TEXT_A_NAME = "Human-Written Equivalent"
 TEXT_A = """
-Henry is in Year 8. He lives at home with his parents, Jemma and Rob, his twin, an
-older brother with medical needs, and younger brother. He has an older half-sister
-he sees occasionally who does not live at home. The family also have lots of pets
-(cats, dogs, chickens, guinea pigs, horses). Henry has an NHS confirmed ADHD
-diagnosis (09/01/25) following privately assessed indicators (May 2024) of dyslexia,
-ADHD, Conduct Disorder and Oppositional Defiance Disorder. Traits of Autism
-have also been indicated, and he has been on the neurodevelopmental pathway
-for assessment for 18 months. At primary school a visual impairment was identified
-in his left eye which did not respond to treatment. Henry was permanently
-excluded from Huish Episcopi Academy on 05/12/24 for persistent disruptive
-behaviour. While in the setting Henry had received daily sports development
-group (20 minutes, 1:5), weekly Zones of Regulation intervention (30 minutes, 1:1),
-literacy intervention 3 times per week (30 minutes), daily mentoring from a
-pastoral support worker, time with the school counsellor (ended due to low
-engagement),16 hours per week of additional adult support in core lessons, weekly
-Forest School (small group, one hour), Somerset Activities Sports Partnership
-intervention (one hour, 1:1), a part-time timetable (two hours per day) and SSPS
-outreach for a Thrive assessment and plan.
+Jack lives at home with his parents, Kirsty and Mark, and two brothers, Jamie and
+Jasper. Jack currently attends Stoke St Michael Primary School, and he is due to
+transition to secondary school in September 2025. His attendance has been
+impacted by anxiety-related difficulties, particularly around school transitions, this
+has been ongoing since Year 3.
+Jack has been diagnosed with ADHD and he is currently on the
+neurodevelopmental pathway for an autism assessment.
 """
 
 TEXT_B_NAME = "AI-Generated Document"
 TEXT_B = """
-Henry grew up in a close family with several siblings and many pets, and after moving homes a few times in his early years the family have lived in their current house for the past eight years.  
-At his small primary school he received literacy intervention and support from the Family Intervention Service.  
-On entering secondary school he accessed weekly Forest School sessions and other practical, movement-based interventions, but the much larger environment led to repeated suspensions and a permanent exclusion.  
-Significant events such as the death of his grandad during the pandemic and several hospital visits for accidents have contributed to his strong sense of fairness and need for safety.  
-He is now attending South Somerset Partnership School and is working with the Educational Psychologist and the Family Intervention Service to rebuild positive experiences of learning.
+Jack was born and raised in Somerset, growing up in a close-knit family with his mum, dad and two younger brothers. His early milestones such as sitting, walking and talking came along without difficulty, and he enjoyed a happy start to life filled with art projects, playful adventures with his siblings and lots of time building imaginative Lego creations. During nursery, his parents began to notice that Jack sometimes approached activities a little differently from his peers, especially when routines changed or tasks had many steps. As he moved on through primary education, he continued to shine in creative subjects and loved making others laugh, yet found the bustle of the school morning overwhelming. On difficult days he struggled to leave the house, becoming tearful and reluctant to get dressed, but once settled in class he could relax and show his curiosity, especially in history, science and art. Supportive teachers introduced visual timetables, smaller group work and clear, step-by-step instructions, which helped him feel calmer and more able to contribute. At home, Jack’s family provide constant encouragement; they celebrate his caring nature, his sense of humour and the way he looks out for his brothers. While he still faces challenges with worries about schoolwork, homework and unexpected changes, he is surrounded by adults who work together to help him build confidence, develop steady routines and enjoy the activities he loves most.
 
-Henry engages best when adults take time to build trust, speak calmly, use clear visual prompts and offer regular check-ins so he can share how he feels before problems escalate.
+Jack responds best when adults speak calmly, give him time to think and break information into small, clear chunks, using visual prompts such as now-and-next boards; involving him in choices and checking his understanding helps him feel in control and ready to share his ideas.
+
+
 
 """
 
