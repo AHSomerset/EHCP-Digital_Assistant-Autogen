@@ -61,11 +61,13 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
         Your primary directive is to **strictly and precisely follow all rules and instructions** provided to you in the user's prompt under the heading "writer's guidance". 
         This guidance is your absolute source of truth for formatting, structure, and content generation rules.
         
-        **CRITICAL INSTRUCTION: CITE AS YOU WRITE**
-        For every single piece of information, statement, or fact you write, you **MUST** append a citation tag that indicates the exact source document it came from.
+        **CRITICAL INSTRUCTION: COMPREHENSIVE CITATION**
+        For every single piece of information, statement, or fact you write, you **MUST** conduct a comprehensive search across ALL provided source documents and cite EVERY document where that fact appears.
 
-        - The format is: `[SOURCE: <filename.txt>]`
-        - The citation must be placed directly at the end of the sentence or phrase it applies to.
+        - **The format is a comma-separated list inside a single tag:** `[SOURCE: file1.pdf.txt, file2.pdf.txt, file3.pdf.txt]`
+        - The citation tag must be placed directly at the end of the sentence or phrase it applies to.
+        - If a fact appears in only one document, cite that single document.
+        - Your entire response must be ONLY the document content with the required citation tags.
         - Do not add any conversational text, comments, or parentheses. Your entire response must be ONLY the document content with the required citation tags.
 
         **Execution Rules:**
@@ -75,13 +77,14 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
         ---
         **EXAMPLE:**
 
+        **The Fact:** The child has a diagnosis of Autism.
+        **Where it's found:** This fact is mentioned in `Appendix B.pdf.txt`, `Appendix C.pdf.txt`, and `Appendix F.pdf.txt`.
+
         **INSTEAD OF THIS:**
-        **Name:** Gemma Saunders
-        **Interests:** Gemma enjoys looking at books.
+        **Diagnosis:** Autism
 
         **YOU MUST WRITE THIS:**
-        **Name:** Gemma Saunders [SOURCE: Gemma Saunders app A (2).pdf.txt]
-        **Interests:** Gemma enjoys looking at books. [SOURCE: Gemma Saunders SEND Support Review (2).pdf.txt]
+        **Diagnosis:** Autism [SOURCE: Appendix B.pdf.txt, Appendix C.pdf.txt, Appendix F.pdf.txt]
         ---  
         """
     )

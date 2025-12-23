@@ -12,7 +12,6 @@
 3.  **EXAMPLE OF ACCURACY (DO THIS):**
     *   If the source only says "Gemma will receive speech therapy," you **MUST** write only "Gemma will receive speech therapy."
 4.  **MISSING INFORMATION:** If information for a required field is not available, you **MUST** leave the field blank. Do NOT write "Information not available" or "N/A".
-5.  **NO CITATIONS:** Do NOT include inline references (e.g., "[Source A]") in the output.
 
 **THE ANTI-HALLUCINATION RULES TAKE PRECEDENCE OVER ANY OTHER INSTRUCTIONS.**
 

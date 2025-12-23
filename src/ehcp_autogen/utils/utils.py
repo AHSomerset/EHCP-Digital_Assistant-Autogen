@@ -620,6 +620,49 @@ def parse_markdown_to_dict(markdown_content: str) -> dict[str,any]:
             
     return flat_context
 
+def create_fact_mapper_version(cited_markdown_content: str) -> str:
+    """
+    Parses a markdown string containing [SOURCE: ...] tags, cleans the filenames
+    within them by removing numeric prefixes and file extensions, and returns
+    the processed string for the Fact Mapper.
+    """
+    logging.info("Cleaning citation tags for the final Fact Mapper version...")
+
+    # This inner function will be applied to every citation tag found
+    def replacer(match):
+        # The content is group 1 (e.g., "19_Appendix D.pdf.txt, 20_Appendix E.pdf.txt")
+        citation_content = match.group(1)
+        
+        # Split by comma to handle multiple sources
+        filenames = [name.strip() for name in citation_content.split(',')]
+        
+        cleaned_filenames = []
+        for filename in filenames:
+            # This regex removes a numeric prefix (e.g., "19_") AND the common file extensions
+            cleaned_name = re.sub(r'^\d+_|\.pdf\.txt$|\.docx\.txt$', '', filename)
+            cleaned_filenames.append(cleaned_name)
+        
+        # Join the cleaned filenames back together and format the final tag
+        return f"[SOURCE: {', '.join(cleaned_filenames)}]"
+
+    # This pattern finds [SOURCE: followed by anything until the closing ]
+    # and calls the 'replacer' function on each match.
+    fact_mapper_content = re.sub(r'\[SOURCE:\s*(.*?)\]', replacer, cited_markdown_content)
+    
+    return fact_mapper_content
+
+def create_clean_version(cited_markdown_content: str) -> str:
+    """
+    Removes all [SOURCE: ...] citation tags from a markdown string to create
+    a clean, final version for the end-user document.
+    """
+    logging.info("Creating clean version of markdown by removing all citation tags...")
+    
+    # This regex finds any whitespace followed by [SOURCE: ... ] and removes it.
+    # The '.*?' part is a non-greedy match for any character.
+    clean_content = re.sub(r'\s*\[SOURCE:.*?\]', '', cited_markdown_content)
+    
+    return clean_content
 
 # ==============================================================================
 # 4. DOCUMENT GENERATION UTILITIES

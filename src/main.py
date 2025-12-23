@@ -23,7 +23,6 @@ Key Responsibilities:
 
 import os
 import sys
-import re
 import logging
 import time
 import asyncio
@@ -48,7 +47,9 @@ from .ehcp_autogen.utils.utils import (
     generate_word_document,
     download_blob_as_text_async,
     upload_blob_async,
-    archive_run_artifacts
+    archive_run_artifacts,
+    create_fact_mapper_version,
+    create_clean_version
 )
 
 # Load environment variables
@@ -123,7 +124,7 @@ async def main_async():
                     # Create and upload Fact Mapper document
                     logging.info("Cleaning citation tags for the final Fact Mapper...")
                     # This regex finds '.pdf.txt' that is immediately followed by a ']' and removes it.
-                    fact_mapper_content = re.sub(r'\d+_|\.pdf\.txt(?=\])', '', cited_markdown_content)
+                    fact_mapper_content = create_fact_mapper_version(cited_markdown_content)
 
                     logging.info("Parsing fact_mapper to generate Word document.")
                     fact_mapper_context = parse_markdown_to_dict(fact_mapper_content)
@@ -140,7 +141,7 @@ async def main_async():
                     # Create the clean version for the final Word document
                     logging.info("Creating clean version of markdown by removing citation tags...")
                     # Use regex to remove all [SOURCE: ...] tags
-                    final_markdown_content = re.sub(r'\s*\[SOURCE:.*?\]', '', cited_markdown_content)
+                    final_markdown_content = create_clean_version(cited_markdown_content)
                     
                     logging.info("Parsing final markdown to generate Word document.")
                     final_data_context = parse_markdown_to_dict(final_markdown_content)
