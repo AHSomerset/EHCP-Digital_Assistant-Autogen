@@ -14,7 +14,7 @@ The "Golden Thread" is the logical link between Needs, Provisions, and Outcomes.
 
 ### Provision and Outcome Specificity
 *   **(CRITICAL) Hallucination of Specifics:** For any Provision or Outcome, if the writer has added a quantifiable detail (e.g., a ratio like "1:1", a frequency like "weekly", a duration like "30 minutes", or a timeframe like "by the end of term") that was **NOT** explicitly stated in the source documents, this is a **CRITICAL** hallucination error.
-*   **(STANDARD) Omission of Specifics:** If the source documents **DID** provide a specific detail for a provision or outcome, but the writer failed to include it, this is a **STANDARD** error.
+*   **(CRITICAL) Omission of Important detail:** If the source documents **DID** provide a specific detail for a provision or outcome, but the writer failed to include it, this is a **CRITICAL** error. The document must contain all relevant information for each provision and outcome.
 *   **(NOT an Error) Correctly Recording a Vague Provision or Outcome:** If a provision or outcome in the draft is vague (e.g., "regular support from a TA") because the source text itself was vague, the writer has acted correctly. This is **NOT an error** and should not be flagged.
 
 ### SMART Outcome Rules
