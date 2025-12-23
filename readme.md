@@ -22,7 +22,9 @@ This project is a sophisticated multi-agent system designed to automate the gene
 
 Before you begin, ensure you have the following installed and configured:
 
--   **Python 3.11+**
+-   **Python 3.12.9**
+-   **Python Version Manager:** It is recommend to install and use `pyenv` to manage your Python versions.  This project includes a `.python-version` file in the root directory, which will automatically configure `pyenv` to use the correct Python version when you are in the project folder.
+*   **Operating System:** The project was developed on a Linux environment, using **WSL 2 (Ubuntu)** on Windows.
 -   **An Azure Subscription** with permissions to create resources.
 -   **Azure CLI**
 -   **Docker Desktop** (for containerised deployment)

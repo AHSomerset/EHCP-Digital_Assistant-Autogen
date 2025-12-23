@@ -17,3 +17,6 @@ __pycache__/
 
 # Ignore test output files
 compare_readability.py
+
+# Ignore the pyenv version file, as it's for local dev only
+.python-version
