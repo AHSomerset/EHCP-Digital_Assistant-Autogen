@@ -48,3 +48,8 @@ generate_placeholders.py
 
 # Test output files
 compare_readability.py
+
+# Other test files
+test_voice_extractor.py
+
+

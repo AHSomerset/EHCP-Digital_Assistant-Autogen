@@ -20,9 +20,9 @@ from typing import Dict
 from autogen import ConversableAgent
 
 from .. import config
-from ..tasks import get_creation_task, get_correction_task, run_validation_async
+from ..tasks import get_creation_task, get_correction_task, run_validation_async, extract_voice_snippets_with_llm, find_appendix_a_blob_name
 from ..agents.writer import create_writer_team
-from ..utils.utils import download_blob_as_text_async, parse_feedback_and_count_issues, download_all_sources_from_container_async
+from ..utils.utils import download_blob_as_text_async, list_blobs_async, parse_feedback_and_count_issues, download_all_sources_from_container_async
 
 async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm_config: Dict, llm_config_fast: Dict, prompt_writer: ConversableAgent):
     """Asynchronously processes a single section, including retries, under a semaphore."""
@@ -42,6 +42,30 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
             # Using .get() provides a default empty list if 'source_exclude_files'
             # is not defined for a section, preventing a KeyError.
             exclude_list = section_config.get("source_exclude_files", []) # Use .get for safety
+            family_voice_examples = ""
+            if section_number == "2":
+                logging.info("--- Section 2 detected. Extracting family voice snippets from Appendix A. ---")
+                try:
+                    # 1. Get a list of all available processed documents
+                    all_processed_blobs = await list_blobs_async(config.PROCESSED_BLOB_CONTAINER)
+                
+                    # 2. Use the finder function to intelligently locate Appendix A
+                    appendix_a_blob = find_appendix_a_blob_name(all_processed_blobs)
+                    
+                    if appendix_a_blob:
+                    # 3. If found, download its content and extract the voice
+                        appendix_a_content = await download_blob_as_text_async(config.PROCESSED_BLOB_CONTAINER, appendix_a_blob)
+                        family_voice_examples = await extract_voice_snippets_with_llm(
+                            appendix_a_content, 
+                            llm_config_fast=llm_config_fast
+                        )
+                    else:
+                        family_voice_examples = "Could not locate Appendix A file."
+
+                except Exception as e:
+                    logging.warning(f"Could not extract family voice. Reason: {e}")
+                    family_voice_examples = "An error occurred during voice extraction."
+
             
             logging.info(f"Fetching source documents for Section {section_number}...")
             source_content = await download_all_sources_from_container_async(
@@ -60,7 +84,7 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
             writer_manager = create_writer_team(llm_config, llm_config_fast)
             writer_proxy_agent = writer_manager.groupchat.agent_by_name("Writer_User_Proxy")
             
-            creation_task = await get_creation_task(section_number, current_output_name, source_content)
+            creation_task = await get_creation_task(section_number, current_output_name, source_content, family_voice_examples)
             await writer_proxy_agent.a_initiate_chat(
                 recipient=writer_manager, message=creation_task, clear_history=True
             )
@@ -127,7 +151,7 @@ async def process_section(section_number: str, semaphore: asyncio.Semaphore, llm
                 
                 # Define the name for the NEXT output file
                 next_output_name = f"output_s{section_number}_i{i+1}.md"
-                correction_task = await get_correction_task(section_number, previous_draft, revision_instructions, next_output_name, source_content)
+                correction_task = await get_correction_task(section_number, previous_draft, revision_instructions, next_output_name, source_content, family_voice_examples)
 
                 # --- CORRECTION WRITER TEAM ---
                 await writer_proxy_agent.a_initiate_chat(

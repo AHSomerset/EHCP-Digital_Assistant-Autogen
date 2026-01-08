@@ -24,12 +24,10 @@ The utilities are categorised into several key areas:
 
 import os
 import re
-import pypdf
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 import src.ehcp_autogen.config as config
 import asyncio
-import io
 from azure.storage.blob.aio import BlobServiceClient
 from docxtpl import DocxTemplate
 from datetime import datetime, timedelta
@@ -110,15 +108,21 @@ async def list_blobs_async(container_name: str) -> List[str]:
         logging.error(f"Failed to list blobs in container '{container_name}'. Reason: {e}")
         return []
 
-async def upload_blob_async(container_name: str, blob_name: str, data: str | bytes, overwrite: bool = True):
+async def upload_blob_async(container_name: str, blob_name: str, data: str | bytes, overwrite: bool = True) -> str:
     """Asynchronously uploads string or byte data to a blob."""
     logging.info(f"Uploading to blob: {container_name}/{blob_name}")
     try:
         container_client = await get_blob_container_client(container_name)
         await container_client.upload_blob(name=blob_name, data=data, overwrite=overwrite)
+        
+        success_message = f"Successfully uploaded blob '{blob_name}' to container '{container_name}'."
+        logging.info(success_message)
+        return success_message
+        
     except Exception as e:
-        logging.error(f"Failed to upload blob '{blob_name}'. Reason: {e}")
-        raise
+        error_message = f"Error: Failed to upload blob '{blob_name}'. Reason: {e}"
+        logging.error(error_message)
+        return error_message
 
 async def download_blob_as_text_async(container_name: str, blob_name: str) -> str:
     """Asynchronously downloads a blob and returns its content as a UTF-8 string."""
@@ -700,7 +704,26 @@ def is_terminate_message(message):
             return content.strip() == "TERMINATE"
     return False
 
+# ==============================================================================
+# 6. LLM-BASED TEXT ANALYSIS UTILITIES
+# ==============================================================================
+# Functions that use LLMs to perform specific text analysis tasks.
 
+def find_appendix_a_blob_name(blob_names: List[str]) -> Optional[str]:
+    """
+    Finds the blob name for Appendix A from a list of blob names by checking
+    if the filename ends with the specific pattern '_appendix_a.pdf.txt'.
+    """
+    logging.info("Attempting to locate Appendix A file using a strict naming convention...")
+    
+    # The expected suffix is always the same, just in lowercase for a case-insensitive check.
+    expected_suffix = "_appendix_a.pdf.txt"
 
-
-
+    for blob_name in blob_names:
+        # Check if the lowercase version of the blob name ends with our target string
+        if blob_name.lower().endswith(expected_suffix):
+            logging.info(f"Found Appendix A file: '{blob_name}'")
+            return blob_name
+            
+    logging.warning(f"Could not find a file ending with '{expected_suffix}'.")
+    return None

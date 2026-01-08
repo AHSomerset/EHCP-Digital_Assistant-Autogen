@@ -58,8 +58,8 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
         llm_config=llm_config,
         system_message= """You are a professional document writer. Your job is to synthesise information from provided source documents into a final draft.
 
-        Your primary directive is to **strictly and precisely follow all rules and instructions** provided to you in the user's prompt under the heading "writer's guidance". 
-        This guidance is your absolute source of truth for formatting, structure, and content generation rules.
+        Your primary directive is to **strictly and precisely follow all rules and instructions** provided to you in the user's prompt. 
+        This guidance is your absolute source of truth for writing style, formatting, structure, and content generation rules.
         
         **CRITICAL INSTRUCTION: COMPREHENSIVE CITATION**
         For every single piece of information, statement, or fact you write, you **MUST** conduct a comprehensive search across ALL provided source documents and cite EVERY document where that fact appears.

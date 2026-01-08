@@ -52,6 +52,7 @@ from .ehcp_autogen.utils.utils import (
     create_clean_version
 )
 
+
 # Load environment variables
 load_dotenv()
 
@@ -123,7 +124,7 @@ async def main_async():
 
                     # Create and upload Fact Mapper document
                     logging.info("Cleaning citation tags for the final Fact Mapper...")
-                    # This regex finds '.pdf.txt' that is immediately followed by a ']' and removes it.
+                    # This function finds '.pdf.txt' that is immediately followed by a ']' and removes it.
                     fact_mapper_content = create_fact_mapper_version(cited_markdown_content)
 
                     logging.info("Parsing fact_mapper to generate Word document.")
@@ -140,7 +141,7 @@ async def main_async():
 
                     # Create the clean version for the final Word document
                     logging.info("Creating clean version of markdown by removing citation tags...")
-                    # Use regex to remove all [SOURCE: ...] tags
+                    # Use regex function to remove all [SOURCE: ...] tags
                     final_markdown_content = create_clean_version(cited_markdown_content)
                     
                     logging.info("Parsing final markdown to generate Word document.")
