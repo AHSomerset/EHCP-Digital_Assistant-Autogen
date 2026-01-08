@@ -2,9 +2,15 @@
 
 Your goal is to create `output_s3_i#.md`. You must categorise all needs identified in the source documents and define their provision and outcomes.
 
+### Core Requirements
+1.  **Structure:** Your output **MUST** follow the exact structure defined in the `_structure_s3.md` file.
+2.  **Categorisation:** All needs **MUST** be categorised according to the rules in the `_need_categorisation_guide.md`.
+3.  **Style and Tone:** You **MUST** strictly adhere to all principles defined in the `_writing_style_guide_s3.md`.
+4.  **Special Wording (CRITICAL):** You **MUST** check for and apply any mandatory, verbatim text blocks as defined in the `_specific_wording_rules_s3.md`. These special rules take priority over all other style instructions.
+
 ## Core Rules for Needs, Provisions, and Outcomes
 
-*   **Needs:** Describe the child's needs concisely and specifically, including the impact the need has on them. If a category has no needs, you MUST write `[Child's name] has no identified special educational needs in this area` in the `Need 1` field and leave the rest blank for that category. Only include needs clearly identified by professionals.
+*   **Needs:** Describe the child's needs concisely and specifically, including the impact the need has on them. Only include needs clearly identified by professionals.
 
 *   **Provisions:** **CRITICAL:** Provision should be specified for **every need**. However, you **MUST NOT invent** provisions if they are not in the source documents. Provisions must be specific, detailed, and quantified **only if the source document provides this detail**. A fully specified provision includes:
     1.  The support required.

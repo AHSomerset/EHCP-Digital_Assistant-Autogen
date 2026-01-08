@@ -94,6 +94,7 @@ _PARTIALS_DIR = os.path.join(INSTRUCTIONS_DIR, "partials")
 WRITER_COMMON_RULES = os.path.join(_PARTIALS_DIR, "_writer_common_rules.md")
 STYLE_GUIDE_S2 = os.path.join(_PARTIALS_DIR, "_writing_style_guide_s2.md")
 STYLE_GUIDE_S3 = os.path.join(_PARTIALS_DIR, "_writing_style_guide_s3.md")
+WORDING_RULES_S3 = os.path.join(_PARTIALS_DIR, "_specific_wording_rules_s3.md")
 NEED_CATEGORISATION_GUIDE = os.path.join(_PARTIALS_DIR, "_need_categorisation_guide.md")
 VALIDATOR_COMMON_RULES = os.path.join(_PARTIALS_DIR, "_validator_common_rules.md")
 VALIDATOR_COMMON_FEEDBACK_FORMAT = os.path.join(_PARTIALS_DIR, "_validator_common_feedback_format.md")
@@ -123,8 +124,8 @@ def get_section_config(section_number: str) -> dict:
             "source_exclude_files": []
         },
         "3": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, STYLE_GUIDE_S3],
-            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3],
+            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, STYLE_GUIDE_S3, WORDING_RULES_S3],
+            "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, WORDING_RULES_S3],
             "source_exclude_files": ['Appendix A.pdf']
         },
     }

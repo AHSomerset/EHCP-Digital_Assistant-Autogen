@@ -704,26 +704,6 @@ def is_terminate_message(message):
             return content.strip() == "TERMINATE"
     return False
 
-# ==============================================================================
-# 6. LLM-BASED TEXT ANALYSIS UTILITIES
-# ==============================================================================
-# Functions that use LLMs to perform specific text analysis tasks.
 
-def find_appendix_a_blob_name(blob_names: List[str]) -> Optional[str]:
-    """
-    Finds the blob name for Appendix A from a list of blob names by checking
-    if the filename ends with the specific pattern '_appendix_a.pdf.txt'.
-    """
-    logging.info("Attempting to locate Appendix A file using a strict naming convention...")
-    
-    # The expected suffix is always the same, just in lowercase for a case-insensitive check.
-    expected_suffix = "_appendix_a.pdf.txt"
 
-    for blob_name in blob_names:
-        # Check if the lowercase version of the blob name ends with our target string
-        if blob_name.lower().endswith(expected_suffix):
-            logging.info(f"Found Appendix A file: '{blob_name}'")
-            return blob_name
-            
-    logging.warning(f"Could not find a file ending with '{expected_suffix}'.")
-    return None
+

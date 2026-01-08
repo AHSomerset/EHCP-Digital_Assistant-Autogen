@@ -21,6 +21,12 @@ The "Golden Thread" is the logical link between Needs, Provisions, and Outcomes.
 *   **Definition:** An outcome is SMART if it is Specific, Measurable, Achievable, Relevant, and Time-bound. "To improve social skills" is not SMART. "By the end of the term, Gemma will initiate a conversation with a peer on at least 3 occasions per week" is SMART.
 *   **(STANDARD) Failure to Synthesise a SMART Outcome:** If the source documents contained all the necessary elements for a SMART outcome but the writer produced a vague, non-SMART outcome, this is a **STANDARD** error.
 
+### Special Wording Validation (CRITICAL)
+
+You must check the draft against the rules in the `_special_wording_guide.md`.
+*   If the conditions for a special wording scenario are met (e.g., there are no health needs), the output text **MUST EXACTLY MATCH** the boilerplate provided in the guide.
+*   Any deviation, paraphrasing, or failure to use the required text in these specific scenarios is a **CRITICAL** error.
+
 ### Field Formatting Rules
 *   **(NOT an Error) Use of Bullet Points:** It is acceptable for the `Provision` and `Outcome` fields to contain a bulleted list (using hyphens) if a single need is associated with multiple provisions or outcomes. This is **NOT** a formatting error and should be considered correct.
 
@@ -29,7 +35,7 @@ The "Golden Thread" is the logical link between Needs, Provisions, and Outcomes.
 *   **(STANDARD) Social Care H1/H2:** Check for plausible classification of social care provision. Misclassification is a **STANDARD** error.
 *   **(CRITICAL) Relevance to SEN:** Health and Social Care needs described MUST relate to the child's special educational needs.
 *   **(CRITICAL) Prohibited Content:** The file MUST NOT mention the names of specific prescribed drugs or medications.
-*   **(STANDARD) No Needs Statement:** If no needs are present under a specific category, the file MUST use the exact phrase "[Child's name] has no identified special educational needs in this area" in the 'Need 1' field for that category.
+
 
 
 
