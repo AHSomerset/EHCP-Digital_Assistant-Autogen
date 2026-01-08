@@ -33,8 +33,10 @@ Social care provisions must be separated into `H1 Provision` and `H2 Provision`.
 **Important** 
 - Not all sections must have needs included. Only if there are needs which fit that category in the source documents should they be included in the ouput file. Each section may have between 0 and 10 needs. All special educational needs identified in the source documents should appear in the output file.
 
-
 *   **Handling Multiple Provisions/Outcomes:** If a single need is met by multiple distinct provisions, or leads to multiple distinct outcomes, you **MUST** list all of them within the single corresponding `Provision` or `Outcome` field. 
+
+## Strengths
+You must also include strengths under each section. You must follow the instructions in _s3_strengths_guide when identifying strengths and populating the strengths fields.
 
 ---
 

@@ -37,6 +37,13 @@ You must check the draft against the rules in the `_special_wording_guide.md`.
 *   **(CRITICAL) Prohibited Content:** The file MUST NOT mention the names of specific prescribed drugs or medications.
 
 
+### Strengths Field Quality (STANDARD)
+You must check the quality of all "Strengths" fields in the document by applying the definitions and rules found in the `_s3_strengths_guide.md`.
+
+*   **Content Validity:** Check if the section contains any "Invalid Content" as defined in the strengths guide. The inclusion of invalid content is a **STANDARD** error.
+*   **Relevance:** Check if all strengths adhere to the "Contextual Relevance" rule. A mis-categorised strength is a **STANDARD** error.
+*   **Comprehensiveness:** Check if the fields adhere to the "Comprehensiveness" rule. A field that is clearly incomplete is a **STANDARD** error.
+
 
 
 
