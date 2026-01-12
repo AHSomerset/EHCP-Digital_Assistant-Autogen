@@ -206,7 +206,7 @@ async def main_async():
         await clear_blob_container_async(config.OUTPUT_BLOB_CONTAINER)
         
         print("\n--- Clearing source documents for next run. ---")
-        #await clear_blob_container_async(config.SOURCE_BLOB_CONTAINER)
+        await clear_blob_container_async(config.SOURCE_BLOB_CONTAINER)
 
 if __name__ == "__main__":
     try:
