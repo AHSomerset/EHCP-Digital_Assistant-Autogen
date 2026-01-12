@@ -23,7 +23,7 @@ The "Golden Thread" is the logical link between Needs, Provisions, and Outcomes.
 
 ### Special Wording Validation (CRITICAL)
 
-You must check the draft against the rules in the `_special_wording_guide.md`.
+You must check the draft against the rules in the `_specific_wording_rules_s3.md`.
 *   If the conditions for a special wording scenario are met (e.g., there are no health needs), the output text **MUST EXACTLY MATCH** the boilerplate provided in the guide.
 *   Any deviation, paraphrasing, or failure to use the required text in these specific scenarios is a **CRITICAL** error.
 
@@ -31,10 +31,12 @@ You must check the draft against the rules in the `_special_wording_guide.md`.
 *   **(NOT an Error) Use of Bullet Points:** It is acceptable for the `Provision` and `Outcome` fields to contain a bulleted list (using hyphens) if a single need is associated with multiple provisions or outcomes. This is **NOT** a formatting error and should be considered correct.
 
 ### Content Categorisation & Rules
-*   **(STANDARD) Need Duplication:** A single, distinct need appearing under more than one category is a **STANDARD** error. Any deviation from the classification in the _need_categorisation_guidance.md should be flagged as a **STANDARD** error.
+*   **(STANDARD) Need Duplication:** A single specific need appearing under more than one category is a **STANDARD** error. 
+*   **(STANDARD) Mis-categorisation:** Any deviation from the classification in the `_need_categorisation_guidance.md` should be flagged as a **STANDARD** error.
 *   **(STANDARD) Social Care H1/H2:** Check for plausible classification of social care provision. Misclassification is a **STANDARD** error.
 *   **(CRITICAL) Relevance to SEN:** Health and Social Care needs described MUST relate to the child's special educational needs.
 *   **(CRITICAL) Prohibited Content:** The file MUST NOT mention the names of specific prescribed drugs or medications.
+*   **(STANDARD) Consolidated Needs:** Each numbered `Need` field must contain only a single, distinct special educational need. Multiple distinct needs consolidated into a single field is a **STANDARD** error. 
 
 
 ### Strengths Field Quality (STANDARD)

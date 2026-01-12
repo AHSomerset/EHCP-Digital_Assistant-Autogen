@@ -35,7 +35,7 @@ All other Health Needs, Provisions, or Outcomes fields must be left blank.
 *   **For the "Health Care Provision 1" field, it must read:**
     > [NAME] is awaiting an assessment to see whether a neurodevelopmental condition may explain some of the difficulties [he/she] is experiencing. There is a support offer for [him/her], [his/her] parents, and education setting while [he/she] is waiting which can be accessed by calling the service advice line - Multi-disciplinary team, Children and Young People’s Neurodevelopmental Partnership, Somerset NHS Foundation Trust.
 
-*   **The "Health Care Outcome 1" field must be left blank.**
+*   **The "Health Care Outcome 1" field must be left blank, keeping only the field name.**
 
 
 ### **Scenario 3: No Idenitified Needs (for any category other than health)
@@ -45,11 +45,11 @@ All other Health Needs, Provisions, or Outcomes fields must be left blank.
 **Action:** The relavent Needs section MUST be populated with the following text verbatim.
 
 *   **For the "Need 1" field, it must read:**
-    > [NAME] has no identified has no identified special educational needs in this area.
+    > [NAME] has no identified special educational needs in this area.
 
-*   **The relavent "Provision 1" field must be left blank.**
+*   **The relavent "Provision 1" field must be left blank, keeping only the field name.**
 
-*   **The relavent "Outcome 1" field must be left blank.**
+*   **The relavent "Outcome 1" field must be left blank, keeping only the field name.**
     
 All other Needs, Provisions, or Outcomes fields in the relavent category must be left blank
 

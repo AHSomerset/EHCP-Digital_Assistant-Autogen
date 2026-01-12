@@ -125,7 +125,7 @@ def get_section_config(section_number: str) -> dict:
             "source_exclude_files": []
         },
         "3": {
-            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, STYLE_GUIDE_S3, WORDING_RULES_S3, STRENGTHS_GUIDE],
+            "writer_guidance": [writer_guidance_s, WRITER_COMMON_RULES, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, WORDING_RULES_S3, STRENGTHS_GUIDE],
             "validation_guidance": [validation_guidance_s, VALIDATOR_COMMON_RULES, VALIDATOR_COMMON_FEEDBACK_FORMAT, NEED_CATEGORISATION_GUIDE, STRUCTURE_S3, WORDING_RULES_S3, STRENGTHS_GUIDE],
             "source_exclude_files": ['Appendix A.pdf']
         },
