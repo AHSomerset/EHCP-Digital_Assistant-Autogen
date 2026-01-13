@@ -8,7 +8,7 @@ initial setup to final cleanup.
 Key Responsibilities:
 - Initialises a unique run ID for traceability.
 - Executes the high-level, asynchronous workflow:
-    1. Pre-processes source PDFs from Azure Blob Storage.
+    1. Pre-processes source documents from Azure Blob Storage.
     2. Kicks off the concurrent processing of all document sections using the `process_section` orchestrator.
     3. Manages the final merge of validated sections.
     4. **Generates Dual Final Outputs:**
@@ -40,7 +40,7 @@ from .ehcp_autogen.config import llm_config, llm_config_fast
 from .ehcp_autogen.orchestration.orchestrator import process_section
 from .ehcp_autogen.agents.specialist_agents import create_prompt_writer_agent
 from .ehcp_autogen.utils.utils import (
-    preprocess_all_pdfs_async,
+    preprocess_source_documents_async,
     merge_output_files_async,
     clear_blob_container_async,
     parse_markdown_to_dict,
@@ -81,7 +81,7 @@ async def main_async():
         loop_logger.info("Main process started.")
         
         # --- PRE-PROCESSING ---
-        is_preprocessing_successful = await preprocess_all_pdfs_async()
+        is_preprocessing_successful = await preprocess_source_documents_async()
         if not is_preprocessing_successful:
             logging.critical("Pre-processing failed. Aborting main process.")
             return # This will still trigger the finally block for cleanup
@@ -124,7 +124,7 @@ async def main_async():
 
                     # Create and upload Fact Mapper document
                     logging.info("Cleaning citation tags for the final Fact Mapper...")
-                    # This function finds '.pdf.txt' that is immediately followed by a ']' and removes it.
+                    # This function finds filename suffix that is immediately followed by a ']' and removes it.
                     fact_mapper_content = create_fact_mapper_version(cited_markdown_content)
 
                     logging.info("Parsing fact_mapper to generate Word document.")

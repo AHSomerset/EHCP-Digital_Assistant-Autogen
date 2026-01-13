@@ -64,7 +64,7 @@ def create_writer_team(llm_config: Dict, llm_config_fast: Dict) -> GroupChatMana
         **CRITICAL INSTRUCTION: COMPREHENSIVE CITATION**
         For every single piece of information, statement, or fact you write, you **MUST** conduct a comprehensive search across ALL provided source documents and cite EVERY document where that fact appears.
 
-        - **The format is a comma-separated list inside a single tag:** `[SOURCE: file1.pdf.txt, file2.pdf.txt, file3.pdf.txt]`
+        - **The format is a comma-separated list inside a single tag:** `[SOURCE: file1.pdf.txt, file2.docx.txt, file3.pdf.txt]`
         - The citation tag must be placed directly at the end of the sentence or phrase it applies to.
         - If a fact appears in only one document, cite that single document.
         - Your entire response must be ONLY the document content with the required citation tags.

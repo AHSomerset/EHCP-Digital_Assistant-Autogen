@@ -10,8 +10,8 @@ The utilities are categorised into several key areas:
     operations (list, upload, download, clear, copy), managed through a 
     singleton BlobServiceClient.
 2.  **Data Pipeline Utilities:** High-level functions that orchestrate complex
-    data workflows, such as the PDF pre-processing pipeline
-    (`preprocess_all_pdfs_async`) and the final merging of sectional outputs
+    data workflows, such as the document pre-processing pipeline
+    (`preprocess_source_docs_async`) and the final merging of sectional outputs
     (`merge_output_files_async`).
 3.  **Parsing and Text Utilities:** Functions for cleaning text, sanitising
     strings for use as keys, and parsing structured data from markdown
@@ -25,6 +25,7 @@ The utilities are categorised into several key areas:
 import os
 import re
 import logging
+from markdownify import markdownify as md
 from typing import List, Dict, Optional
 import src.ehcp_autogen.config as config
 import asyncio
@@ -160,8 +161,8 @@ async def download_all_sources_from_container_async(container_name: str, exclude
         exclude_files = []
 
     # A case-insensitive comparison is used for the exclusion list to make the
-    # configuration more robust against user input variations (e.g., 'appendix a.pdf').
-    exclude_files_lower = [f.lower().replace('.pdf', '') for f in exclude_files]
+    # configuration more robust against user input variations.
+    exclude_files_lower = [f.lower().replace(' ', '_') for f in exclude_files]
 
     logging.info(f"--- Downloading source documents from container: {container_name} ---")
     if exclude_files_lower:
@@ -180,10 +181,9 @@ async def download_all_sources_from_container_async(container_name: str, exclude
     # that the order of documents in the final concatenated string is predictable.
     for blob_name in blob_names:
         filename = os.path.basename(blob_name)
-        filename_lower = filename.lower()
-        filename_base = filename_lower.removesuffix('.txt')
+        sanitised_filename = _get_sanitised_base_name(filename)
         # Check whether filename appears in exclude list.
-        if any(exclusion in filename_base for exclusion in exclude_files_lower):
+        if any(exclusion in sanitised_filename for exclusion in exclude_files_lower):
             logging.info(f"Skipping excluded source file: {filename}")
             continue
 
@@ -289,48 +289,66 @@ async def archive_run_artifacts(run_id: str, run_timestamp: str):
 # ==============================================================================
 # High-level functions that orchestrate the application's data workflow.
 
-async def preprocess_all_pdfs_async() -> bool:
+def _get_sanitised_base_name(filename: str) -> str:
     """
-    Processes all PDFs from the source container, intelligently routing each one
+    Strips prefixes and all extensions from a filename to get its core name.
+    e.g., '19_Appendix A.pdf.txt' -> 'appendix a'
+    """
+    # Get the base name (removes directory path)
+    name = os.path.basename(filename)
+    
+    # Remove all extensions (e.g., .pdf.txt -> .pdf -> '')
+    while os.path.splitext(name)[1]:
+        name = os.path.splitext(name)[0]
+        
+    # Remove numeric prefixes (e.g., "19_")
+    name = re.sub(r'^\d+[\s_-]*', '', name)
+    
+    # Return as lowercase and stripped of whitespace
+    return name.lower().strip()
+
+async def preprocess_source_documents_async() -> bool:
+    """
+    Processes all supported documents (PDFs, DOCX) from the source container, intelligently routing each one
     to the correct custom Document Intelligence model based on its filename.
     """
-    logging.info("--- Starting Intelligent PDF Pre-processing Router ---")
+    logging.info("--- Starting Intelligent Document Pre-processing Router ---")
     try:
         source_container = config.SOURCE_BLOB_CONTAINER
         processed_container = config.PROCESSED_BLOB_CONTAINER
-        pdf_blob_names = await list_blobs_async(source_container)
-        pdf_blob_names = [name for name in pdf_blob_names if name.lower().endswith('.pdf')]
+        all_blob_names = await list_blobs_async(source_container)
+        source_blob_names = [name for name in all_blob_names if name.lower().endswith(('.pdf', '.docx'))]
 
-        if not pdf_blob_names:
+        if not source_blob_names:
             logging.warning(f"No PDF files found in container '{source_container}'.")
             return True
 
-        for pdf_blob_name in pdf_blob_names:
+        for blob_name in source_blob_names:
             model_id_to_use = config.AZURE_DI_MODEL_IDS["default"] # Start with the fallback
             
             # --- ROUTING LOGIC ---
-            filename_lower = pdf_blob_name.lower()
+            filename_lower = blob_name.lower()
             sanitised_filename = re.sub(r'[^a-z0-9]', '', filename_lower)
             for keyword, model_id in config.AZURE_DI_MODEL_IDS.items():
                 if keyword in sanitised_filename:
                     model_id_to_use = model_id
-                    logging.info(f"Match found: Filename '{pdf_blob_name}' contains '{keyword}'. Routing to model '{model_id_to_use}'.")
+                    logging.info(f"Match found: Filename '{blob_name}' contains '{keyword}'. Routing to model '{model_id_to_use}'.")
                     break # Stop when we find the first match
 
             # --- ANALYSIS & UPLOAD ---
             # Call the function with the selected model ID
-            processed_content = await analyse_document_with_di(pdf_blob_name, model_id_to_use)
+            processed_content = await analyse_document_with_di(blob_name, model_id_to_use)
             
             if processed_content:
-                output_blob_name = pdf_blob_name + ".txt"
+                output_blob_name = blob_name + ".txt"
                 await upload_blob_async(processed_container, output_blob_name, processed_content)
             else:
-                logging.warning(f"No content was processed for '{pdf_blob_name}' (using model '{model_id_to_use}'). No output was saved.")
+                logging.warning(f"No content was processed for '{blob_name}' (using model '{model_id_to_use}'). No output was saved.")
 
-        logging.info("--- Intelligent PDF Pre-processing Finished ---")
+        logging.info("--- Intelligent Document Pre-processing Finished ---")
         return True
     except Exception as e:
-        logging.critical(f"A critical error occurred during PDF pre-processing: {e}", exc_info=True)
+        logging.critical(f"A critical error occurred during document pre-processing: {e}", exc_info=True)
         return False
 
 
@@ -388,69 +406,138 @@ def _format_table_as_markdown(table) -> str:
     
     return markdown + "\n"
 
+# async def analyse_document_with_di(blob_name: str, model_id: str) -> str:
+#     """
+#     Analyses a document from blob storage with a specified Document Intelligence
+#     model, intelligently separating paragraphs from tables and preserving order.
+#     """
+#     logging.info(f"Analysing document '{blob_name}' with model '{model_id}'...")
+#     try:
+#         endpoint = config.AZURE_DI_ENDPOINT
+#         key = config.AZURE_DI_KEY
+        
+#         document_intelligence_client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+#         blob_sas_url = await get_blob_sas_url_async(config.SOURCE_BLOB_CONTAINER, blob_name)
+
+#         poller = await document_intelligence_client.begin_analyze_document(
+#             model_id=model_id, body={"urlSource": blob_sas_url}
+#         )
+#         result = await poller.result()
+#         await document_intelligence_client.close()
+
+#         output_string = f"# Analysis of Document: {blob_name}\n\n"
+
+#         # Check if the result came from a custom model (which populates the 'documents' field).
+#         if result.documents:
+#             # --- PATH 1: Custom Model ---
+#             # This is the high-accuracy path.
+#             logging.info(f"Processing result from custom model '{model_id}'.")
+#             for doc in result.documents:
+#                 output_string += f"## Form Data (Doc Type: {doc.doc_type})\n"
+#                 for field_name, field in doc.fields.items():
+#                     # 'field.content' is the extracted value.
+#                     value_content = field.content.strip() if field.content else ""
+#                     output_string += f"**{field_name}:** {value_content}\n"
+#                 output_string += "\n"
+#         else:
+#             # --- PATH 2: Pre-built/Layout Model (The Fallback) ---
+#             # This is the logic for handling documents which don't have a custom pre-trained model.
+#             logging.info(f"Processing result from pre-built model '{model_id}'.")
+            
+#             all_elements = []
+#             table_regions = []
+
+#             if result.tables:
+#                 for table in result.tables:
+#                     table_regions.extend(table.bounding_regions)
+#                     top_y = table.bounding_regions[0].polygon[1]
+#                     page_num = table.bounding_regions[0].page_number
+#                     all_elements.append({'type': 'table', 'content': table, 'page': page_num, 'y_pos': top_y})
+
+#             if result.paragraphs:
+#                 for paragraph in result.paragraphs:
+#                     if not _is_element_in_regions(paragraph, table_regions):
+#                         top_y = paragraph.bounding_regions[0].polygon[1]
+#                         page_num = paragraph.bounding_regions[0].page_number
+#                         all_elements.append({'type': 'paragraph', 'content': paragraph.content, 'page': page_num, 'y_pos': top_y})
+
+#             all_elements.sort(key=lambda item: (item['page'], item['y_pos']))
+
+#             for element in all_elements:
+#                 if element['type'] == 'paragraph':
+#                     output_string += f"{element['content']}\n\n"
+#                 elif element['type'] == 'table':
+#                     output_string += _format_table_as_markdown(element['content'])
+        
+#         return output_string
+
+#     except Exception as e:
+#         logging.error(f"Failed to analyse document '{blob_name}' with model '{model_id}'. Reason: {e}", exc_info=True)
+#         return ""
+
+# In your utils file
+
 async def analyse_document_with_di(blob_name: str, model_id: str) -> str:
     """
-    Analyses a document from blob storage with a specified Document Intelligence
-    model, intelligently separating paragraphs from tables and preserving order.
+    Analyses a document from blob storage, intelligently choosing the processing
+    path based on whether a custom or pre-built Document Intelligence model is used.
     """
     logging.info(f"Analysing document '{blob_name}' with model '{model_id}'...")
     try:
         endpoint = config.AZURE_DI_ENDPOINT
         key = config.AZURE_DI_KEY
-        
-        document_intelligence_client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+        document_intelligence_client = DocumentIntelligenceClient(
+                                            endpoint=endpoint, 
+                                            credential=AzureKeyCredential(key)
+                                        )
         blob_sas_url = await get_blob_sas_url_async(config.SOURCE_BLOB_CONTAINER, blob_name)
 
-        poller = await document_intelligence_client.begin_analyze_document(
-            model_id=model_id, body={"urlSource": blob_sas_url}
-        )
+        # Determine if we are using a pre-built model or a custom one.
+        # We assume any model starting with "prebuilt-" should use the markdown path.
+        is_prebuilt_model = model_id.startswith("prebuilt-")
+
+        if is_prebuilt_model:
+            # For pre-built models, request Markdown output directly.
+            logging.info(f"Using pre-built model '{model_id}'. Requesting Markdown output format.")
+            poller = await document_intelligence_client.begin_analyze_document(
+                model_id=model_id,
+                body={"urlSource": blob_sas_url},
+                output_content_format="markdown"  # <-- Use Markdown for pre-built
+            )
+        else:
+            # For custom models, do not specify the output format to get the structured data.
+            logging.info(f"Using custom model '{model_id}'. Requesting default structured output.")
+            poller = await document_intelligence_client.begin_analyze_document(
+                model_id=model_id,
+                body={"urlSource": blob_sas_url}
+            )
+        
         result = await poller.result()
         await document_intelligence_client.close()
 
-        output_string = f"# Analysis of Document: {blob_name}\n\n"
+        output_string = ""
 
         # Check if the result came from a custom model (which populates the 'documents' field).
         if result.documents:
             # --- PATH 1: Custom Model ---
-            # This is the high-accuracy path.
             logging.info(f"Processing result from custom model '{model_id}'.")
             for doc in result.documents:
                 output_string += f"## Form Data (Doc Type: {doc.doc_type})\n"
                 for field_name, field in doc.fields.items():
-                    # 'field.content' is the extracted value.
                     value_content = field.content.strip() if field.content else ""
                     output_string += f"**{field_name}:** {value_content}\n"
                 output_string += "\n"
-        else:
-            # --- PATH 2: Pre-built/Layout Model (The Fallback) ---
-            # This is the logic for handling documents which don't have a custom pre-trained model.
-            logging.info(f"Processing result from pre-built model '{model_id}'.")
-            
-            all_elements = []
-            table_regions = []
-
-            if result.tables:
-                for table in result.tables:
-                    table_regions.extend(table.bounding_regions)
-                    top_y = table.bounding_regions[0].polygon[1]
-                    page_num = table.bounding_regions[0].page_number
-                    all_elements.append({'type': 'table', 'content': table, 'page': page_num, 'y_pos': top_y})
-
-            if result.paragraphs:
-                for paragraph in result.paragraphs:
-                    if not _is_element_in_regions(paragraph, table_regions):
-                        top_y = paragraph.bounding_regions[0].polygon[1]
-                        page_num = paragraph.bounding_regions[0].page_number
-                        all_elements.append({'type': 'paragraph', 'content': paragraph.content, 'page': page_num, 'y_pos': top_y})
-
-            all_elements.sort(key=lambda item: (item['page'], item['y_pos']))
-
-            for element in all_elements:
-                if element['type'] == 'paragraph':
-                    output_string += f"{element['content']}\n\n"
-                elif element['type'] == 'table':
-                    output_string += _format_table_as_markdown(element['content'])
         
+        # Check if we got content from a pre-built model.
+        elif result.content:
+            # --- PATH 2: Pre-built/Layout Model ---
+            logging.info(f"Processing Markdown result from pre-built model '{model_id}'.")
+            clean_markdown = md(result.content, heading_style="ATX")
+            output_string = clean_markdown
+        
+        else:
+            logging.warning(f"Document Intelligence analysis for '{blob_name}' with model '{model_id}' produced no actionable output (neither documents nor content).")
+
         return output_string
 
     except Exception as e:

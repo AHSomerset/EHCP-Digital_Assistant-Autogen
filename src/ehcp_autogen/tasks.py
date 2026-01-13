@@ -28,7 +28,7 @@ import litellm
 from typing import List, Optional
 from .agents.validator import create_validator_team
 from . import config
-from .utils.utils import read_guidance_files_async
+from .utils.utils import read_guidance_files_async, _get_sanitised_base_name
 
 # ==============================================================================
 # LLM-Driven Text Analysis for Family Voice Extraction
@@ -36,21 +36,23 @@ from .utils.utils import read_guidance_files_async
 
 def find_appendix_a_blob_name(blob_names: List[str]) -> Optional[str]:
     """
-    Finds the blob name for Appendix A from a list of blob names by checking
-    if the filename ends with the specific pattern '_appendix_a.pdf.txt'.
+    Finds the blob name for Appendix A from a list of blob names by sanitising each name and matching its logical core.
     """
-    logging.info("Attempting to locate Appendix A file using a strict naming convention...")
+    logging.info("Attempting to intelligently locate Appendix A file...")
     
-    # The expected suffix is always the same, just in lowercase for a case-insensitive check.
-    expected_suffix = "_appendix_a.pdf.txt"
+    # The logical name we are looking for, after sanitisation.
+    target_logical_name = "appendix a"
 
     for blob_name in blob_names:
-        # Check if the lowercase version of the blob name ends with our target string
-        if blob_name.lower().endswith(expected_suffix):
+        # Sanitise the current blob name to get its core logical name
+        sanitised_name = _get_sanitised_base_name(blob_name)
+
+        # Check if the sanitised name matches the target logical name
+        if sanitised_name == target_logical_name:
             logging.info(f"Found Appendix A file: '{blob_name}'")
             return blob_name
-            
-    logging.warning(f"Could not find a file ending with '{expected_suffix}'.")
+
+    logging.warning(f"Could not find a file ending with '{target_logical_name}'.")
     return None
 
 async def extract_voice_snippets_with_llm(appendix_a_text: str, llm_config_fast: dict, num_snippets: int = 10) -> str:

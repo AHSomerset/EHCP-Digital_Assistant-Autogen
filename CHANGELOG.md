@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.2.0] - 2026-01-13
+
+This release marks a major leap in the system's architectural maturity and the qualitative output of the generated documents. It incorporates extensive user feedback and refactors core processes for greater reliability, modularity, and accuracy.
+
+### Added
+-   **Automated "Fact Mapper" Document:** The system now generates a second, parallel output document alongside the main draft. The Fact Mapper provides a complete, auditable trail by linking every single piece of information in the document back to the specific source file(s) it was extracted from. This is a critical feature for traceability and human review.
+-   **Multi-Format Document Processing:** The pre-processing pipeline now natively supports both **PDF and Microsoft Word (.docx)** files, significantly increasing the system's versatility.
+-   **Dynamic "Voice of the Family" Feature:** Implemented a sophisticated mechanism to capture the unique tone and voice of the family. A focused LLM call now analyses Appendix A to extract representative snippets, which are then dynamically injected into the writer's prompt to ensure the final document is empathetic and authentic.
+-   **Special Wording & Boilerplate Engine:** A new `_special_wording_guide.md` has been introduced to enforce mandatory, verbatim text for specific scenarios (e.g., "Awaiting Neurodiversity Assessment").
+-   **Enhanced Strengths Extraction:** Added a dedicated `_s3_strengths_guide.md` with a clear process for identifying and writing about strengths in Section 3.
+
+### Changed
+-   **Pre-processing: Upgraded to Azure Document Intelligence:** The text extraction pipeline has been upgraded to use Azure Document Intelligence for superior, layout-aware parsing of both PDFs and DOCX files, including robust Markdown table conversion.
+-   **Citation Mechanism: Upgraded to Multi-Source:** The underlying citation system has been enhanced. The `Document_Writer` is now instructed to find and cite *all* source documents for each fact, and the citation format now supports a comma-separated list. This is the enabling technology for the Fact Mapper.
+-   **Orchestration: Enhanced "Write-Verify" Loop:** The main orchestrator loop now performs a `blob_exists_async` check after every write operation, automatically retrying the step if an agent fails to save its output.
+
+### Fixed
+
+
+---
+
+
 ## [1.1.0] - 23-12-2025
 
 ### Changed

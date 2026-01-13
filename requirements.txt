@@ -21,3 +21,6 @@ python-docx
 # Azure SDKs for Blob Storage and Document Intelligence
 azure-storage-blob
 azure-ai-documentintelligence
+
+# Convert HTML text to Markdown 
+markdownify

@@ -13,7 +13,7 @@ This project is a sophisticated multi-agent system designed to automate the gene
 -   **Configuration-Driven:** A central `src/ehcp_autogen/config.py` file manages all application settings, file paths, and LLM configurations.
 -   **Modular agent Guidance:** Agent instructions are externalised into a version-controllable `instructions/` directory. Reusable partials, including shared "structure" files, ensure consistency and adhere to the DRY (Don't Repeat Yourself) principle across both Writer and Validator teams.
 -   **Cloud-Ready Logging:** The system generates detailed run logs and a high-level process trace, saving them both locally and uploading them to a dedicated Azure Blob Storage container for persistent, reliable access.
--   **Automated File Management:** Includes a pre-processing step to convert source PDFs to clean text and a guaranteed cleanup process to ensure a clean state for every run.
+-   **Automated Document Processing:** Handles both PDF and .docx source documents. Uses a pre-processing pipeline powered by Azure Document Intelligence to perform layout-aware text extraction, preserving table structures by converting them to Markdown.Includes a guaranteed cleanup process to ensure a clean state for every run.
 -   **Tiered LLM Strategy:** Uses two different LLM tiers—a powerful model for content generation and a faster model for orchestration and planning.
 
 ---
@@ -36,8 +36,9 @@ Before you begin, ensure you have the following installed and configured:
 The application follows a robust, multi-stage pipeline designed to maximise quality and efficiency.
 
 **Stage 1: Pre-processing**
--   The script begins by scanning the `source-docs` Azure Blob Storage container for all PDF source documents.
--   Each PDF is read, its text is extracted, cleaned, and then saved as a `.txt` file in the `processed-docs` container. This ensures that the AI agents work with a clean, consistent data source.
+-   The script scans the source-docs container for all supported documents (.pdf, .docx).
+-   Each document is passed to Azure Document Intelligence, which uses a layout-aware model to extract text and tables. This process intelligently routes documents to custom-trained models if available, falling back to the prebuilt-layout model.
+-   The service returns a clean Markdown string with tables correctly formatted, which is then saved as a .txt file in the processed-docs container.
 
 **Stage 2: Concurrent Sectional Generation**
 -   The system initiates a writer and validator team for each of the document sections.
@@ -139,7 +140,7 @@ This project uses a tiered LLM strategy to balance performance and cost. You wil
 
 1.  **Prerequisites:**
     -   You must have Python 3.11+ installed on your local machine.
-    -   You must have an Azure account and an Azure Storage Account.
+    -   You must have an Azure account, an Azure Storage Account, and an Azure Document Intelligence resource.
     -   Create five blob containers within your storage account: source-docs, processed-docs, outputs, final-document, and run-archive
 
 2.  **Clone the repository:**
@@ -174,7 +175,7 @@ This project uses a tiered LLM strategy to balance performance and cost. You wil
 
 ## How to Run
 
-1.  Upload Source Documents: Using the Azure Portal, Azure Storage Explorer, or the Azure CLI, upload all your source PDF documents into the source-docs blob container.
+1.  Upload Source Documents: Using the Azure Portal, Azure Storage Explorer, or the Azure CLI, upload all your source documents into the source-docs blob container.
 2.  Ensure your guidance files in `/instructions` and your `template.docx` are configured as needed.
 3.  Run the main script from the root directory:
     ```bash
