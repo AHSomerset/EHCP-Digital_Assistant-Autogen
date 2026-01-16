@@ -30,9 +30,6 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          
-        echo "== CLOUD =="
-        az cloud show --query "{name:name, suffixes:cloudEndpointSuffixes}" -o json
         
         echo "== RAW VARS =="
         echo "ACR_NAME_DEV='$(ACR_NAME_DEV)'"
