@@ -31,14 +31,14 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
         
-        echo "== RAW VARS =="
-        echo "ACR_NAME_DEV='$(ACR_NAME_DEV)'"
-        echo "ACR_NAME_PROD='$(ACR_NAME_PROD)'"
-        echo "RESOURCE_GROUP='$(RESOURCE_GROUP)'"
-        
-        # Show sanitized versions (strip protocol and domain if someone set login server by mistake)
-        ACR_DEV_CLEAN="$(echo "$(ACR_NAME_DEV)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
-        echo "ACR_DEV_CLEAN='${ACR_DEV_CLEAN}'"
+          echo "== RAW VARS =="
+          echo "ACR_NAME_DEV='$(ACR_NAME_DEV)'"
+          echo "ACR_NAME_PROD='$(ACR_NAME_PROD)'"
+          echo "RESOURCE_GROUP='$(RESOURCE_GROUP)'"
+          
+          # Show sanitized versions (strip protocol and domain if someone set login server by mistake)
+          ACR_DEV_CLEAN="$(echo "$(ACR_NAME_DEV)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
+          echo "ACR_DEV_CLEAN='${ACR_DEV_CLEAN}'"
 
           az acr build --registry $(ACR_NAME_DEV) --image $(imageName):dev-latest .
           echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]dev-latest"
