@@ -29,6 +29,12 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
+          echo "== AZURE CONTEXT =="
+          az account show --query "{name:name, id:id, tenantId:tenantId}" -o tsv
+          echo "== VERIFY ACR by NAME =="
+          az acr show -n $(ACR_NAME_DEV) -o table || true
+          echo "== VERIFY ACR by RG (if you know it) =="
+          az acr show -n $(ACR_NAME_DEV) -g $(RESOURCE_GROUP) -o table || true
           az acr build --registry $(ACR_NAME_DEV) --image $(imageName):dev-latest .
           echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]dev-latest"
 
@@ -46,6 +52,12 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
+          echo "== AZURE CONTEXT =="
+          az account show --query "{name:name, id:id, tenantId:tenantId}" -o tsv
+          echo "== VERIFY ACR by NAME =="
+          az acr show -n $(ACR_NAME_DEV) -o table || true
+          echo "== VERIFY ACR by RG (if you know it) =="
+          az acr show -n $(ACR_NAME_DEV) -g $(RESOURCE_GROUP) -o table || true
           IMAGE_TAG="v$(Build.BuildId)"
           az acr build --registry $(ACR_NAME_PROD) --image $(imageName):$IMAGE_TAG .
           echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]$IMAGE_TAG"
