@@ -1,29 +1,95 @@
-# Docker
-# Build a Docker image
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+# azure-pipelines.yml
 
 trigger:
-- main
+  branches:
+    include:
+      - main
+      - develop
 
-resources:
-- repo: self
-
+# This variable is available to all stages
 variables:
-  tag: '$(Build.BuildId)'
+  imageName: 'my-autogen-app'
 
 stages:
+# ==============================================================================
+# Build Stage: Builds and pushes the Docker image to the correct ACR.
+# ==============================================================================
 - stage: Build
-  displayName: Build image
+  displayName: 'Build and Push Docker Image'
   jobs:
-  - job: Build
-    displayName: Build
+  - job: BuildJob
+    displayName: 'Build'
     pool:
-      vmImage: ubuntu-latest
+      vmImage: 'ubuntu-latest'
     steps:
-    - task: Docker@2
-      displayName: Build an image
+    - task: AzureCLI@2
+      name: 'BuildAndPush'
+      displayName: 'Build and Push to Container Registry'
       inputs:
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
-        tags: |
-          $(tag)
+        azureSubscription: 'AzureProdConnection-ManagedIdentity' # The name of your Service Connection
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          # 1. Set environment-specific variables based on the branch
+          if [[ "$(Build.SourceBranchName)" == "main" ]]; then
+            echo "BUILD: Building for PRODUCTION from 'main' branch."
+            ACR_NAME="$(ACR_NAME_PROD)"
+            IMAGE_TAG="v$(Build.BuildId)" # e.g., v20250815.1 (Immutable)
+          else
+            echo "BUILD: Building for DEVELOPMENT from '$(Build.SourceBranchName)' branch."
+            ACR_NAME="$(ACR_NAME_DEV)"
+            IMAGE_TAG="dev-latest" # Floating tag for Dev
+          fi
+          
+          echo "ACR Name: $ACR_NAME"
+          echo "Image Tag: $IMAGE_TAG"
+          
+          # 2. Build and Push the image using the Azure CLI
+          az acr build \
+            --registry $ACR_NAME \
+            --image $(imageName):$IMAGE_TAG \
+            .
+            
+          # 3. Share these variables with the next stage (Deploy)
+          echo "##vso[task.setvariable variable=ACR_NAME;isOutput=true]$ACR_NAME"
+          echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]$IMAGE_TAG"
+
+# ==============================================================================
+# Deploy Stage: Updates the correct Container App Job to use the new image.
+# ==============================================================================
+- stage: Deploy
+  displayName: 'Deploy to Container App'
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    displayName: 'Deploy'
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      # Ingest the variables from the previous Build stage
+      ACR_NAME: $[ stageDependencies.Build.BuildJob.outputs['BuildAndPush.ACR_NAME'] ]
+      IMAGE_TAG: $[ stageDependencies.Build.BuildJob.outputs['BuildAndPush.IMAGE_TAG'] ]
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Update Container App Job'
+      inputs:
+        azureSubscription: 'AzureProdConnection-ManagedIdentity'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          # 1. Set environment-specific variables based on the branch
+          if [[ "$(Build.SourceBranchName)" == "main" ]]; then
+            echo "DEPLOY: Deploying to PRODUCTION."
+            JOB_NAME="$(JOB_NAME_PROD)"
+          else
+            echo "DEPLOY: Deploying to DEVELOPMENT."
+            JOB_NAME="$(JOB_NAME_DEV)"
+          fi
+          
+          echo "Target Job Name: $JOB_NAME"
+
+          # 2. Update the correct Container App Job to use the newly pushed image
+          az containerapp job update \
+            --name $JOB_NAME \
+            --resource-group "$(RESOURCE_GROUP)" \
+            --image "$(ACR_NAME).azurecr.io/$(imageName):$(IMAGE_TAG)"
