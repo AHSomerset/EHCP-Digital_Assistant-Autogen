@@ -18,5 +18,4 @@ Your goal is to create `output_s1_i#.md` by extracting personal details, contact
 *   **Known to social care:** Yes/No
 *   **Currently a looked after child:** Yes/No
 *   **Has been a looked after child:** Yes/No
-*   **Is there a one page profile received (append):** Yes/No
 *   **Child or young person moving to area with EHCP from a different Local Authority:** Yes/No. If Yes, Name of Local Authority

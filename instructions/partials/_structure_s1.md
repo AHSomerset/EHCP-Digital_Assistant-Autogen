@@ -29,5 +29,4 @@
 **Other professionals involved with this child/young person/family:**
 **Currently a looked after child:**
 **Has been a looked after child:**
-**Is there a one page profile received (append):**
 **Child or young person moving to area with EHCP from a different Local Authority:**

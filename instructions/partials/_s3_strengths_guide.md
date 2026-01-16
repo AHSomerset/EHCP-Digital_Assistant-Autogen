@@ -40,4 +40,4 @@ The following types of content are **NOT** considered valid strengths:
 
 ### 4. Rule: Comprehensiveness
 
-*   The "Strengths" fields should be comprehensive and reflect all relevant positive information available in the source documents for that category. A field that is overly brief or clearly missing significant strengths is considered incomplete.
+*   The "Strengths" fields should be comprehensive and reflect all relevant positive information available in the source documents for that category. A field that is overly brief or clearly missing significant strengths is considered incomplete. Only if there are no strengths relevant to the category in the source documents should the field be left blank, including only the field heading.
