@@ -1,4 +1,6 @@
 # azure-pipelines.yml
+# This single pipeline handles both Development and Production deployments
+# based on the Git branch that triggers it.
 
 trigger:
   branches:
@@ -6,13 +8,18 @@ trigger:
       - main
       - develop
 
-# This variable is available to all stages
+# Global variables available to all stages
 variables:
   imageName: 'my-autogen-app'
+  # The Resource Group is the same for both Dev and Prod based on your constraint.
+  # This is pulled from a variable group for security.
+  resourceGroup: $(RESOURCE_GROUP) 
 
 stages:
 # ==============================================================================
-# Build Stage: Builds and pushes the Docker image to the correct ACR.
+# STAGE 1: Build the Docker image and push it to the correct ACR.
+# This stage is the same for both Dev and Prod, but it uses conditional
+# logic to choose the right registry and image tag.
 # ==============================================================================
 - stage: Build
   displayName: 'Build and Push Docker Image'
@@ -23,10 +30,13 @@ stages:
       vmImage: 'ubuntu-latest'
     steps:
     - task: AzureCLI@2
-      name: 'BuildAndPush'
+      name: 'BuildAndPush' # A name for this step to reference its outputs later
       displayName: 'Build and Push to Container Registry'
       inputs:
-        azureSubscription: 'AzureProdConnection-ManagedIdentity' # The name of your Service Connection
+        # This uses your PROD connection by default. It only needs AcrPush,
+        # which should be safe. If you have a separate Dev connection, you can
+        # add logic here to switch connections.
+        azureSubscription: 'AzureProdConnection' 
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
@@ -55,14 +65,17 @@ stages:
           echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]$IMAGE_TAG"
 
 # ==============================================================================
-# Deploy Stage: Updates the correct Container App Job to use the new image.
+# STAGE 2: Deploy the new image to the correct Container App Job.
+# This stage contains two separate jobs with conditions. Only one will run.
 # ==============================================================================
 - stage: Deploy
-  displayName: 'Deploy to Container App'
+  displayName: 'Deploy to Environment'
   dependsOn: Build
   jobs:
-  - job: DeployJob
-    displayName: 'Deploy'
+  # --- JOB A: Deploy to Development ---
+  - job: Deploy_Dev
+    displayName: 'Deploy to Development'
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'develop')) # Only runs for the 'develop' branch
     pool:
       vmImage: 'ubuntu-latest'
     variables:
@@ -71,25 +84,37 @@ stages:
       IMAGE_TAG: $[ stageDependencies.Build.BuildJob.outputs['BuildAndPush.IMAGE_TAG'] ]
     steps:
     - task: AzureCLI@2
-      displayName: 'Update Container App Job'
+      displayName: 'Update DEV Container App Job'
       inputs:
-        azureSubscription: 'AzureProdConnection-ManagedIdentity'
+        azureSubscription: 'AzureDevConnection' # <-- USES THE DEV-ONLY CONNECTION
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          # 1. Set environment-specific variables based on the branch
-          if [[ "$(Build.SourceBranchName)" == "main" ]]; then
-            echo "DEPLOY: Deploying to PRODUCTION."
-            JOB_NAME="$(JOB_NAME_PROD)"
-          else
-            echo "DEPLOY: Deploying to DEVELOPMENT."
-            JOB_NAME="$(JOB_NAME_DEV)"
-          fi
-          
-          echo "Target Job Name: $JOB_NAME"
-
-          # 2. Update the correct Container App Job to use the newly pushed image
+          echo "DEPLOY: Deploying image $(imageName):$(IMAGE_TAG) to DEV job."
           az containerapp job update \
-            --name $JOB_NAME \
-            --resource-group "$(RESOURCE_GROUP)" \
+            --name "$(JOB_NAME_DEV)" \
+            --resource-group $(resourceGroup) \
+            --image "$(ACR_NAME).azurecr.io/$(imageName):$(IMAGE_TAG)"
+
+  # --- JOB B: Deploy to Production ---
+  - job: Deploy_Prod
+    displayName: 'Deploy to Production'
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main')) # Only runs for the 'main' branch
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      ACR_NAME: $[ stageDependencies.Build.BuildJob.outputs['BuildAndPush.ACR_NAME'] ]
+      IMAGE_TAG: $[ stageDependencies.Build.BuildJob.outputs['BuildAndPush.IMAGE_TAG'] ]
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Update PROD Container App Job'
+      inputs:
+        azureSubscription: 'AzureProdConnection' # <-- USES THE PROD-ONLY CONNECTION
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "DEPLOY: Deploying image $(imageName):$(IMAGE_TAG) to PROD job."
+          az containerapp job update \
+            --name "$(JOB_NAME_PROD)" \
+            --resource-group $(resourceGroup) \
             --image "$(ACR_NAME).azurecr.io/$(imageName):$(IMAGE_TAG)"
