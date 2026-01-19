@@ -53,6 +53,29 @@ stages:
           
           echo "ACR Name: $ACR_NAME"
           echo "Image Tag: $IMAGE_TAG"
+
+          
+          echo "== CONTEXT =="
+          az account show --query "{name:name,id:id,tenantId:tenantId}" -o tsv
+          
+          echo "== RAW VARS =="
+          echo "ACR_NAME_PROD='$(ACR_NAME_PROD)'"
+          echo "RESOURCE_GROUP='$(RESOURCE_GROUP)'"
+          echo "PROD_SUBSCRIPTION_ID='$(PROD_SUBSCRIPTION_ID)'"
+          
+          # Sanitize to bare name (no FQDN)
+          ACR_PROD_CLEAN="$(echo "$(ACR_NAME_PROD)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
+          echo "ACR_PROD_CLEAN='${ACR_PROD_CLEAN}'"
+          
+          echo "== TRY SHOW by name (may fail on RBAC) =="
+          az acr show -n "${ACR_PROD_CLEAN}" -o table || true
+          
+          echo "== TRY SHOW by RG (if RG is correct) =="
+          az acr show -n "${ACR_PROD_CLEAN}" -g "$(RESOURCE_GROUP)" -o table || true
+          
+          echo "== LIST registries (may RBAC-fail) =="
+          az acr list -o table || true
+
           
           # 2. Build and Push the image using the Azure CLI
           az acr build \
