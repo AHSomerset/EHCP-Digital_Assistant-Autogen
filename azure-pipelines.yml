@@ -131,13 +131,24 @@ stages:
     steps:
     - task: AzureCLI@2
       displayName: 'Update PROD Container App Job'
-      inputs:
-        azureSubscription: 'AzureProdConnection' # <-- USES THE PROD-ONLY CONNECTION
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          echo "DEPLOY: Deploying image $(imageName):$(IMAGE_TAG) to PROD job."
-          az containerapp job update \
-            --name "$(JOB_NAME_PROD)" \
-            --resource-group $(resourceGroup) \
-            --image "$(ACR_NAME).azurecr.io/$(imageName):$(IMAGE_TAG)"
+        inputs:
+          azureSubscription: 'AzureProdConnection'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            set -euo pipefail
+      
+            # Ensure this is the bare registry resource name
+            ACR_PROD_CLEAN="$(echo "$(ACR_NAME_PROD)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
+      
+            # Ask Azure for the real login server (respects DNL/hashes)
+            ACR_LOGIN_SERVER="$(az acr show -n "${ACR_PROD_CLEAN}" --query loginServer -o tsv)"
+      
+            echo "Using ACR login server: ${ACR_LOGIN_SERVER}"
+            echo "Deploying image: ${ACR_LOGIN_SERVER}/$(imageName):$(IMAGE_TAG)"
+      
+            az containerapp job update \
+              --name "$(JOB_NAME_PROD)" \
+              --resource-group "$(RESOURCE_GROUP)" \
+              --image "${ACR_LOGIN_SERVER}/$(imageName):$(IMAGE_TAG)"
+
