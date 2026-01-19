@@ -7,20 +7,22 @@ trigger:
 
 variables:
   imageName: 'my-ehcp-app'
-  
+
 stages:
 # ==============================================================================
 # STAGE 1: Build the Docker image
-# Contains two separate, conditional jobs. Only one will run per pipeline.
+# One of the two jobs runs based on branch.
 # ==============================================================================
 - stage: Build
   displayName: 'Build and Push Docker Image'
   jobs:
+
   # --- JOB A: Build for Development ---
   - job: Build_Dev
     displayName: 'Build DEV Image'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'develop'))
-    pool: { vmImage: 'ubuntu-latest' }
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - task: AzureCLI@2
       name: 'BuildAndPushDev'
@@ -30,24 +32,42 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-        
+          set -euo pipefail
+
+          echo "== AZURE CONTEXT =="
+          az account show --query "{name:name,id:id,tenantId:tenantId}" -o tsv
+
+          echo "== CLOUD (ensure public) =="
+          az cloud show --query "{name:name}" -o tsv
+          az cloud set -n AzureCloud
+
           echo "== RAW VARS =="
           echo "ACR_NAME_DEV='$(ACR_NAME_DEV)'"
-          echo "ACR_NAME_PROD='$(ACR_NAME_PROD)'"
           echo "RESOURCE_GROUP='$(RESOURCE_GROUP)'"
-          
-          # Show sanitized versions (strip protocol and domain if someone set login server by mistake)
+          echo "DEV_SUBSCRIPTION_ID='$(DEV_SUBSCRIPTION_ID)'"
+
+          # Sanitize ACR name to ensure it's a bare name
           ACR_DEV_CLEAN="$(echo "$(ACR_NAME_DEV)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
           echo "ACR_DEV_CLEAN='${ACR_DEV_CLEAN}'"
 
-          az acr build --registry $(ACR_NAME_DEV) --image $(imageName):dev-latest .
-          echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]dev-latest"
+          REG_ID_DEV="/subscriptions/$(DEV_SUBSCRIPTION_ID)/resourceGroups/$(RESOURCE_GROUP)/providers/Microsoft.ContainerRegistry/registries/${ACR_DEV_CLEAN}"
+
+          echo "== Verify ACR by resource ID =="
+          az acr show --ids "$REG_ID_DEV" -o table
+
+          echo "== Build (ACR Task) =="
+          IMAGE_TAG="dev-latest"   # or use: IMAGE_TAG="dev-v$(Build.BuildId)"
+          az acr build --registry "$REG_ID_DEV" --image "$(imageName):${IMAGE_TAG}" .
+
+          # Output IMAGE_TAG for the Deploy stage in this branch
+          echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]${IMAGE_TAG}"
 
   # --- JOB B: Build for Production ---
   - job: Build_Prod
     displayName: 'Build PROD Image'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
-    pool: { vmImage: 'ubuntu-latest' }
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - task: AzureCLI@2
       name: 'BuildAndPushProd'
@@ -57,29 +77,50 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
+          set -euo pipefail
+
           echo "== AZURE CONTEXT =="
-          az account show --query "{name:name, id:id, tenantId:tenantId}" -o tsv
-          echo "== VERIFY ACR by NAME =="
-          az acr show -n $(ACR_NAME_DEV) -o table || true
-          echo "== VERIFY ACR by RG (if you know it) =="
-          az acr show -n $(ACR_NAME_DEV) -g $(RESOURCE_GROUP) -o table || true
+          az account show --query "{name:name,id:id,tenantId:tenantId}" -o tsv
+
+          echo "== CLOUD (ensure public) =="
+          az cloud show --query "{name:name}" -o tsv
+          az cloud set -n AzureCloud
+
+          echo "== RAW VARS =="
+          echo "ACR_NAME_PROD='$(ACR_NAME_PROD)'"
+          echo "RESOURCE_GROUP='$(RESOURCE_GROUP)'"
+          echo "PROD_SUBSCRIPTION_ID='$(PROD_SUBSCRIPTION_ID)'"
+
+          # Sanitize ACR name to ensure it's a bare name
+          ACR_PROD_CLEAN="$(echo "$(ACR_NAME_PROD)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~; s/[[:space:]]+$//')"
+          echo "ACR_PROD_CLEAN='${ACR_PROD_CLEAN}'"
+
+          REG_ID_PROD="/subscriptions/$(PROD_SUBSCRIPTION_ID)/resourceGroups/$(RESOURCE_GROUP)/providers/Microsoft.ContainerRegistry/registries/${ACR_PROD_CLEAN}"
+
+          echo "== Verify ACR by resource ID =="
+          az acr show --ids "$REG_ID_PROD" -o table
+
+          echo "== Build (ACR Task) =="
           IMAGE_TAG="v$(Build.BuildId)"
-          az acr build --registry $(ACR_NAME_PROD) --image $(imageName):$IMAGE_TAG .
-          echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]$IMAGE_TAG"
+          az acr build --registry "$REG_ID_PROD" --image "$(imageName):${IMAGE_TAG}" .
+
+          # Output IMAGE_TAG for the Deploy stage in this branch
+          echo "##vso[task.setvariable variable=IMAGE_TAG;isOutput=true]${IMAGE_TAG}"
 
 # ==============================================================================
 # STAGE 2: Deploy the new image
-# Also contains two separate, conditional jobs.
 # ==============================================================================
 - stage: Deploy
   displayName: 'Deploy to Environment'
   dependsOn: Build
   jobs:
+
   # --- JOB A: Deploy to Development ---
   - job: Deploy_Dev
     displayName: 'Deploy to Development'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'develop'))
-    pool: { vmImage: 'ubuntu-latest' }
+    pool:
+      vmImage: 'ubuntu-latest'
     variables:
       IMAGE_TAG: $[ stageDependencies.Build.Build_Dev.outputs['BuildAndPushDev.IMAGE_TAG'] ]
     steps:
@@ -90,13 +131,23 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az containerapp job update --name "$(JOB_NAME_DEV)" --resource-group "$(RESOURCE_GROUP)" --image "$(ACR_NAME_DEV).azurecr.io/$(imageName):$(IMAGE_TAG)"
+          set -euo pipefail
+
+          # Build the FQDN from the bare ACR name
+          ACR_DEV_FQDN="$(echo "$(ACR_NAME_DEV)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~').azurecr.io"
+
+          echo "Deploying image: ${ACR_DEV_FQDN}/$(imageName):$(IMAGE_TAG)"
+          az containerapp job update \
+            --name "$(JOB_NAME_DEV)" \
+            --resource-group "$(RESOURCE_GROUP)" \
+            --image "${ACR_DEV_FQDN}/$(imageName):$(IMAGE_TAG)"
 
   # --- JOB B: Deploy to Production ---
   - job: Deploy_Prod
     displayName: 'Deploy to Production'
     condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
-    pool: { vmImage: 'ubuntu-latest' }
+    pool:
+      vmImage: 'ubuntu-latest'
     variables:
       IMAGE_TAG: $[ stageDependencies.Build.Build_Prod.outputs['BuildAndPushProd.IMAGE_TAG'] ]
     steps:
@@ -107,4 +158,13 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az containerapp job update --name "$(JOB_NAME_PROD)" --resource-group "$(RESOURCE_GROUP)" --image "$(ACR_NAME_PROD).azurecr.io/$(imageName):$(IMAGE_TAG)"
+          set -euo pipefail
+
+          # Build the FQDN from the bare ACR name
+          ACR_PROD_FQDN="$(echo "$(ACR_NAME_PROD)" | sed -E 's~^https?://~~; s~\.azurecr\.io/?$~~').azurecr.io"
+
+          echo "Deploying image: ${ACR_PROD_FQDN}/$(imageName):$(IMAGE_TAG)"
+          az containerapp job update \
+            --name "$(JOB_NAME_PROD)" \
+            --resource-group "$(RESOURCE_GROUP)" \
+            --image "${ACR_PROD_FQDN}/$(imageName):$(IMAGE_TAG)"
